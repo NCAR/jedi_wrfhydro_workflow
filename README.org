@@ -1,0 +1,61 @@
+* JEDI Workflow
+
+** Planning
+*** James created [[file:workflow_pseudo.md][workflow_pseudo.md]]
+*** Pseudo Framework
+**** Steps
+NOTE: 'filter' is equal to 'analysis', data assimulation?
+|----------------------------------------+---------------------------|
+| Steps                                  | Description               |
+|----------------------------------------+---------------------------|
+| config                                 | read in experiment yaml   |
+| obtain resources                       | read PBS nodefile         |
+| init                                   | set time and restarts     |
+| Cycling:                               |                           |
+| --- prep observations                  |                           |
+| --- parameter advance                  |                           |
+| --- if obs in window                   |                           |
+| ------ prepare run dir and config file | for filter                |
+| ------ run filter                      |                           |
+| ------ manage filter output            |                           |
+| --- advance model                      | start of window ffrom obs |
+|                                        | obtained above            |
+| --- update prev and current time       |                           |
+|----------------------------------------+---------------------------|
+
+|----------------------+----------------------|
+| User Steps           | Description          |
+|----------------------+----------------------|
+| 1. Setup yaml        | what will inputs be? |
+| 2. Submit PBS Script |                      |
+|----------------------+----------------------|
+
+|-----------------------+-----------------------|
+| Program Steps         | Description           |
+|----------------------+----------------------- |
+| 1. Read yaml          |                       |
+| 2. Read PBS resources |                       |
+| 3. Init               | set time and restarts |
+| 4. Cycle              | Run JEDI              |
+|-----------------------+-----------------------|
+
+|---------------------------------------|
+| Questions                             |
+|---------------------------------------|
+| 1. What does the yaml file look like? |
+|---------------------------------------|
+
+|----+--------------------------------------------------|
+|  # | My Steps                                         |
+|----+--------------------------------------------------|
+| 1. | Figure what combinations of DART and WRF-Hydropy |
+|    | to use                                           |
+| 2. | Setup basic 'hello_world' test : hofx good one   |
+|    | Non-DA vs DA run                                 |
+|----+--------------------------------------------------|
+
+Andy
+ - CESM controls DART but often thinks of it as DART controls CESM
+
+Jedi-WRF-Hydro interface code
+ - first get it working externeally ESC PSL

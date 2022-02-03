@@ -1,0 +1,9 @@
+
+
+
+experiment:
+    experiment_dir: /glade/work/soren/src/jedi/run/run_090321
+    # model_repo:
+    # domain_dir: /glade/work/soren/src/jedi/run/run_090321/
+    # output_dir: /glade/work/soren/src/jedi/run/run_090321/output/3dvar
+    output_dir: /glade/u/home/soren/src/jedi/test_run
