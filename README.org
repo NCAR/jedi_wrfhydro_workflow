@@ -4,6 +4,8 @@
 *** James created [[file:workflow_pseudo.md][workflow_pseudo.md]]
 *** Pseudo Framework
 **** Steps
+NOTE: DART runs filter, advances ensemble,
+NOTE: WRF-Hydro-PY also runs ensemble
 NOTE: 'filter' is equal to 'analysis', data assimulation?
 |----------------------------------------+---------------------------|
 | Steps                                  | Description               |
@@ -11,6 +13,7 @@ NOTE: 'filter' is equal to 'analysis', data assimulation?
 | config                                 | read in experiment yaml   |
 | obtain resources                       | read PBS nodefile         |
 | init                                   | set time and restarts     |
+|                                        | run JEDI if not init??    |
 | Cycling:                               |                           |
 | --- prep observations                  |                           |
 | --- parameter advance                  |                           |
