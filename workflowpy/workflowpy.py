@@ -13,11 +13,21 @@ def pprint(string):
     delim = '---'
     print(delim,'\n',string)
     # print(delim)
+def pwd():
+    return os.getcwd()
+def cd(goto):
+    os.chdir(goto)
+def check_path(path):
+    if (path[-1] != '/'):
+        path += '/'
+    return path
+
 
 class node:
     def __init__(self):
         self.nodes = 1
         self.ppn = 36
+
 
 class workflow:
     def __init__(self, args):
@@ -34,16 +44,34 @@ class workflow:
         print("starting at", self.start_time)
         self.ens_time = self.start_time
         while self.ens_time < self.end_time:
+            self.run_jedi()
+            self.increment_restarts()
             self.run_ensemble()
             self.advance_ensemble()
         print(" Ending Cycling Process")
 
+
+    def run_jedi(self):
+        pprint('Running JEDI')
+        cd(self.jedi_working_dir)
+
+        print("where", pwd())
+        # ARTLESS: RUN WHERE?
+        cd(self.jedi_output_dir)
+
+        cmd = self.jedi_exe + ' ' + self.jedi_yaml
+        print('$', cmd)
+        print("PRETENDING TO RUN IN", pwd())
+        sys.exittt()
+
     def run_ensemble(self):
-        command = self.command + ' ' + self.ens_time.strftime('%H')
-        print('$', command)
-        subprocess.call([str(self.command),
-                         str(self.ens_time.strftime('%H'))],
-                        shell=True)
+        f_name = self.experiment_file_base + \
+            self.ens_time.strftime('%H') + '.nc'
+        f = open(f_name, 'w')
+        f.close()
+        # TODO: Run Ensemble
+        # print('$', self.command)
+        # subprocess.call([str(self.command)], shell=True)
 
     def advance_ensemble(self):
         self.ens_time += self.model_ts
@@ -55,12 +83,30 @@ class workflow:
         print("Single Cheyenne Node Hardcoded")
         self.node = node()
 
+    # make sure everything is in proper format
+    # make sure directories exist
     def setup_experiment(self):
-        self.create_dir_structure()
+        # make working dir, artless can remove
+        if not os.path.isdir(self.jedi_working_dir):
+            os.mkdir(self.jedi_working_dir)
+        if not os.path.isdir(self.jedi_output_dir):
+            os.mkdir(self.jedi_output_dir)
+        # make sure JEDI executable is found
+        exe = False
+        check_exe = self.jedi_build_dir + self.jedi_exe
+        if os.path.exists(check_exe):
+            exe = check_exe
+        check_exe = self.jedi_build_dir + 'bin/' + self.jedi_exe
+        if os.path.exists(check_exe):
+            exe = check_exe
+        if exe == False:
+            print("ERROR: unable to find JEDI executable")
+        self.jedi_exe = exe
+        # self.create_dir_structure()
 
-    def create_dir_structure(self):
-        if not os.path.isdir(self.base_dir):
-            os.mkdir(self.base_dir)
+    # def create_dir_structure(self):
+    #     if not os.path.isdir(self.base_dir):
+    #         os.mkdir(self.base_dir)
 
     def parse_arguments(self, args):
         if len(args) > 1:
@@ -71,25 +117,53 @@ class workflow:
     def read_yaml(self):
         f = open(self.yaml, 'r')
         self.setup = yaml.safe_load(f)
-        self.read_yaml_dirs()
+        self.read_jedi_yaml()
+        # self.read_yaml_dirs()
+        self.read_yaml_file_names()
         self.read_yaml_time()
         self.read_yaml_command()
         # ens_size = int(config['ensemble']['size'])
+        f.close()
         pprint("Read Yaml")
+
+    def read_jedi_yaml(self):
+        self.jedi_yaml = self.setup['experiment']['jedi']['yaml']
+        f = open(self.jedi_yaml, 'r')
+        self.jedi_setup = yaml.safe_load(f)
+        background = self.jedi_setup['cost function']['background']
+        # the following two should be restart files
+        self.input_lsm_f = background['filename_lsm']
+        self.input_hydro_f = background['filename_hydro']
+
+        jedi = self.setup['experiment']['jedi']
+        self.jedi_build_dir = check_path(jedi['build_dir'])
+        self.jedi_working_dir = check_path(jedi['working_dir'])
+        # self.jedi_output_dir = os.path.dirname(self.jedi_yaml) \
+        #     + '/' + self.jedi_output_dir + '/'
+        self.jedi_output_dir = check_path(jedi['output_dir'])
+        self.jedi_exe = jedi['exe']
+
+        print("ARTLESS: tmp jedi_output_dir")
+        # self.jedi_output_dir = check_path(jedi['output'])
+        f.close()
 
     def read_yaml_command(self):
         python = '/glade/u/apps/opt/conda/envs/npl/bin/python3 '
         command = self.setup['experiment']['command']
         # ARTLESS
-        self.command = python +  self.build_dir+'/'+str(command)
+        self.command = python +  self.jedi_output_dir+'/'+str(command)
 
     def read_yaml_dirs(self):
         dirs = self.setup['experiment']['dirs']
         self.base_dir = dirs['output_dir']
-        self.build_dir = dirs['build_dir']
+        # self.build_dir = dirs['build_dir']
         self.experiment_dir = dirs['experiment_dir']
         self.experiment_output_dir = dirs['experiment_output_dir']
         self.init_ensemble_dir = dirs['initial_ensemble_dir']
+
+    def read_yaml_file_names(self):
+        f_names = self.setup['experiment']['file_names']
+        self.experiment_file_base = f_names['experiment_file_base']
 
     def read_yaml_time(self):
         time = self.setup['experiment']['time']
@@ -111,8 +185,8 @@ class workflow:
 
     def print_setup(self):
         pprint("Directories")
-        print("Run dir: ", self.experiment_dir) #self.run_dir) # ARTLESS
-        print("Obs dir: ", self.experiment_output_dir) # self.obs_dir) ARTLESS
+        print("Working dir: ", self.jedi_working_dir) #self.run_dir) # ARTLESS
+        print("Output dir: ", self.jedi_output_dir) # self.obs_dir) ARTLESS
         # print("ens_size: ", self.ens_size)
 
 

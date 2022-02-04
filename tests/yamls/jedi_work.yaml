@@ -1,47 +1,48 @@
 
 experiment:
-    dirs:
-      build_dir: /glade/u/home/soren/src/jedi/workflow/tests/foo
-      experiment_dir: /glade/work/soren/src/jedi/run/run_090321
-      experiment_output_dir: /glade/work/soren/src/jedi/run/run_090321/output/3dvar
-      # model_repo:
-      # domain_dir: /glade/work/soren/src/jedi/run/run_090321/
-      # output_dir: /glade/work/soren/src/jedi/run/run_090321/output/3dvar
-      output_dir: /glade/u/home/soren/src/jedi/test_run/
-      # FOLLOWING SHOULD BE DIFFERENT
-      initial_ensemble_dir: /glade/work/soren/src/jedi/run/run_090321/output/3dvar
+  jedi:
+    yaml: /glade/work/soren/src/jedi/run/run_090321/3dvar_owp.yaml
+    exe: wrf_hydro_nwm_jedi_var.x
+    increment:
 
-    command: create_next_ensemble.py
+    build_dir: /glade/work/soren/src/jedi/090321_build
+    working_dir: /glade/work/soren/src/jedi/run/run_090321
+    output_dir:  /glade/work/soren/src/jedi/foo_output
+  wrf_hydro:
+    working_dif: /glade/work/soren/src/wrf/croton_NY_crocus
 
-    time:
-      start_time: 2020-02-01_00:00:00
-      end_time: 2020-02-01_04:00:00
-      assim_window:
-        hours: 1
-      advance_model_hours: 1
-
+  command: create_next_ensemble.py
+  time:
+    start_time: 2020-02-01_00:00:00
+    end_time: 2020-02-01_04:00:00
+    assim_window:
+      hours: 1
+    advance_model_hours: 10
 
 
-# setup ensemble resources
-#
-# dart_exe_cmd = config['run_experiment']['job_execution']['dart']['exe_cmd']
-# # Create teams based on PBS_NODEFILE?
-# curr_ens_time = hydrodartpy.get_ensemble_time(run_dir)
-# prev_ens_time = curr_ens_time - datetime.timedelta(hours=model_adv_hr)
+
+# --- not read right now ---
+  dirs:
+    # jedi_build_dir: /glade/u/home/soren/src/jedi/workflow/tests/foo
+    # jedi_run_dir: /glade/u/home/soren/src/jedi/workflow/tests/foo
+    experiment_dir: /glade/work/soren/src/jedi/run/run_090321
+    experiment_output_dir: /glade/work/soren/src/jedi/run/run_090321/output/3dvar
+    # model_repo:
+    # domain_dir: /glade/work/soren/src/jedi/run/run_090321/
+    # output_dir: /glade/work/soren/src/jedi/run/run_090321/output/3dvar
+    output_dir: /glade/u/home/soren/src/jedi/test_run/
+    # FOLLOWING SHOULD BE DIFFERENT
+    initial_ensemble_dir: /glade/work/soren/src/jedi/run/run_090321/output/3dvar
+  file_names:
+    experiment_file_base: 'analysis_test_500_obs_owp_swe_csv'
+
+
+
+
 #
 # # which restarts in initial_ensemble_dir
 # use_hydro_rst = len(list(ini_dir.glob('member_000/HYDRO_RST*'))) > 0
 # use_lsm_rst = len(list(ini_dir.glob('member_000/RESTART*'))) > 0
 # use_param_rst = len(list(ini_dir.glob('member_000/parameter_restart*'))) > 0
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
 #
 #
