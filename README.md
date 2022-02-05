@@ -17,4 +17,4 @@ Used in conjunction with [WRF-Hydro/NWM JEDI Implementation](https://github.com/
 `$ make` or `$make build`
 
 3. Run
-`$ make run`
+`$ ./jedi_increment`

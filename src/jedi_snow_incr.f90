@@ -1,24 +1,21 @@
 program jedi_snow_incr
   use netcdf
   use mpi
-  use jedi_disag_module, only : jedi_type, UpdateAllLayers
+  use jedi_disag_module, only : jedi_type, updateAllLayers
   implicit none
 
-  type(jedi_type)      :: jedi_state
-
-  integer :: res, len_land_vec
+  type(jedi_type) :: jedi_state
+  integer :: we_res, sn_res, len_land_vec
   character(len=8) :: date_str
   character(len=2) :: hour_str
-
   ! index to map between tile and vector space
   integer, allocatable :: tile2vector(:,:)
-  double precision, allocatable :: increment(:)
-
+  double precision, allocatable :: increment(:,:)
   integer :: ierr, nprocs, myrank, lunit, ncid
   logical :: file_exists
 
-  namelist /jedi_snow/ date_str, hour_str, res
-  !
+  namelist /jedi_snow/ date_str, hour_str, we_res ,sn_res
+
   call MPI_Init(ierr)
   call MPI_Comm_size(MPI_COMM_WORLD, nprocs, ierr)
   call MPI_Comm_rank(MPI_COMM_WORLD, myrank, ierr)
@@ -27,9 +24,7 @@ program jedi_snow_incr
   print*,"starting apply_incr_jedi_snow program on rank ", myrank
 
   ! READ NAMELIST
-
   inquire (file='apply_incr_nml', exist=file_exists)
-
   if (.not. file_exists) then
      write (6, *) 'ERROR: apply_incr_nml does not exist'
      call MPI_Abort(MPI_COMM_WORLD, 10, ierr)
@@ -38,41 +33,39 @@ program jedi_snow_incr
   open (action='read', file='apply_incr_nml', iostat=ierr, newunit=lunit)
   read (nml=jedi_snow, iostat=ierr, unit=lunit)
 
+
   ! GET MAPPING INDEX (see subroutine comments re: source of land/sea mask)
+  ! call get_fv3_mapping(myrank, date_str, hour_str, res, len_land_vec, tile2vector)
 
-  call get_fv3_mapping(myrank, date_str, hour_str, res, len_land_vec, tile2vector)
-
-  ! SET-UP THE NOAH-MP STATE  AND INCREMENT
-
-  allocate(jedi_state%swe                (len_land_vec))
-  allocate(jedi_state%snow_depth         (len_land_vec))
-  allocate(jedi_state%active_snow_layers (len_land_vec))
-  allocate(jedi_state%swe_previous       (len_land_vec))
-  allocate(jedi_state%snow_soil_interface(len_land_vec,7))
-  allocate(jedi_state%temperature_snow   (len_land_vec,3))
-  allocate(jedi_state%snow_ice_layer     (len_land_vec,3))
-  allocate(jedi_state%snow_liq_layer     (len_land_vec,3))
-  allocate(jedi_state%temperature_soil   (len_land_vec))
-  allocate(increment   (len_land_vec))
+  ! SET-UP THE JEDI STATE AND INCREMENT
+  allocate(jedi_state%swe(we_res, sn_res))
+  allocate(increment(we_res, sn_res))
+  ! allocate(jedi_state%snow_depth         (len_land_vec))
+  ! allocate(jedi_state%active_snow_layers (len_land_vec))
+  ! allocate(jedi_state%swe_previous       (len_land_vec))
+  ! allocate(jedi_state%snow_soil_interface(len_land_vec,7))
+  ! allocate(jedi_state%temperature_snow   (len_land_vec,3))
+  ! allocate(jedi_state%snow_ice_layer     (len_land_vec,3))
+  ! allocate(jedi_state%snow_liq_layer     (len_land_vec,3))
+  ! allocate(jedi_state%temperature_soil   (len_land_vec))
+  ! allocate(increment   (len_land_vec))
 
   ! READ RESTART FILE
-
-  call   read_fv3_restart(myrank, date_str, hour_str, res, ncid, &
-       len_land_vec, tile2vector, jedi_state )
+  call read_wrf_hydro_restart(myrank, date_str, hour_str, we_res, &
+       sn_res, ncid, jedi_state )
 
   ! READ SNOW DEPTH INCREMENT
-
-  call   read_fv3_increment(myrank, date_str, hour_str, res, &
-       len_land_vec, tile2vector, increment)
+  call read_wrf_hydro_increment(myrank, date_str, hour_str, we_res, &
+       sn_res, increment)
 
   ! ADJUST THE RESTART
-
-  call UpdateAllLayers(len_land_vec, increment, jedi_state)
+  print *, "WARNING :: ADD UPDATEALLLAYERS BACK IN!!"
+  ! call updateAllLayers(len_land_vec, increment, jedi_state)
 
   ! WRITE OUT ADJUSTED RESTART
-
-  call   write_fv3_restart(jedi_state, res, ncid, len_land_vec, &
-       tile2vector)
+  print *, "WARNING :: ADD AND FIND WRITE_WRF_HYDRO_RESTART BACK IN!!"
+  ! call write_wrf_hydro_restart(jedi_state, we_res, sn_res, ncid)!, len_land_vec, &
+       ! tile2vector)
 
 
   ! CLOSE RESTART FILE
@@ -120,91 +113,89 @@ contains
   !       land_frac field from the oro_grid files.
   !--------------------------------------------------------------
 
-  subroutine get_fv3_mapping(myrank, date_str, hour_str, res, &
-       len_land_vec, tile2vector)
-    use mpi
-    implicit none
+  ! subroutine get_fv3_mapping(myrank, date_str, hour_str, res, &
+  !      len_land_vec, tile2vector)
+  !   use mpi
+  !   implicit none
 
+  !   integer, intent(in) :: myrank, res
+  !   character(len=8), intent(in) :: date_str
+  !   character(len=2), intent(in) :: hour_str
+  !   integer, allocatable, intent(out) :: tile2vector(:,:)
+  !   integer :: len_land_vec
 
+  !   character(len=100) :: restart_file
+  !   character(len=1) :: rankch
+  !   logical :: file_exists
+  !   integer :: ierr, mpierr, ncid
+  !   integer :: id_dim, id_var, fres
+  !   integer :: slmsk(res,res) ! saved as double in the file, but i think this is OK
+  !   integer :: i, j, nn
 
-    integer, intent(in) :: myrank, res
-    character(len=8), intent(in) :: date_str
-    character(len=2), intent(in) :: hour_str
-    integer, allocatable, intent(out) :: tile2vector(:,:)
-    integer :: len_land_vec
+  !   ! OPEN FILE
+  !   write(rankch, '(i1.1)') (myrank+1)
+  !   restart_file = date_str//"."//hour_str//"0000.sfc_data.tile"//rankch//".nc"
 
-    character(len=100) :: restart_file
-    character(len=1) :: rankch
-    logical :: file_exists
-    integer :: ierr, mpierr, ncid
-    integer :: id_dim, id_var, fres
-    integer :: slmsk(res,res) ! saved as double in the file, but i think this is OK
-    integer :: i, j, nn
+  !   inquire(file=trim(restart_file), exist=file_exists)
 
-    ! OPEN FILE
-    write(rankch, '(i1.1)') (myrank+1)
-    restart_file = date_str//"."//hour_str//"0000.sfc_data.tile"//rankch//".nc"
+  !   if (.not. file_exists) then
+  !      print *, 'restart_file does not exist, ', &
+  !           trim(restart_file) , ' exiting'
+  !      call MPI_Abort(MPI_COMM_WORLD, 10, mpierr)
+  !   endif
 
-    inquire(file=trim(restart_file), exist=file_exists)
+  !   write (6, *) 'calculate mapping from land mask in ', trim(restart_file)
 
-    if (.not. file_exists) then
-       print *, 'restart_file does not exist, ', &
-            trim(restart_file) , ' exiting'
-       call MPI_Abort(MPI_COMM_WORLD, 10, mpierr)
-    endif
+  !   ierr=nf90_open(trim(restart_file),nf90_write,ncid)
+  !   call netcdf_err(ierr, 'opening file: '//trim(restart_file) )
 
-    write (6, *) 'calculate mapping from land mask in ', trim(restart_file)
+  !   ! READ MASK and GET MAPPING
+  !   ierr=nf90_inq_varid(ncid, "slmsk", id_var)
+  !   call netcdf_err(ierr, 'reading slmsk id' )
+  !   ierr=nf90_get_var(ncid, id_var, slmsk)
+  !   call netcdf_err(ierr, 'reading slmsk' )
 
-    ierr=nf90_open(trim(restart_file),nf90_write,ncid)
-    call netcdf_err(ierr, 'opening file: '//trim(restart_file) )
+  !   ! get number of land points  (note: slmsk is double)
+  !   len_land_vec = 0
+  !   do i = 1, res
+  !      do j = 1, res
+  !         if ( slmsk(i,j) == 1)  len_land_vec = len_land_vec+ 1
+  !      enddo
+  !   enddo
 
-    ! READ MASK and GET MAPPING
-    ierr=nf90_inq_varid(ncid, "slmsk", id_var)
-    call netcdf_err(ierr, 'reading slmsk id' )
-    ierr=nf90_get_var(ncid, id_var, slmsk)
-    call netcdf_err(ierr, 'reading slmsk' )
+  !   write(6,*) 'Number of land points on rank ', myrank, ' :',  len_land_vec
 
-    ! get number of land points  (note: slmsk is double)
-    len_land_vec = 0
-    do i = 1, res
-       do j = 1, res
-          if ( slmsk(i,j) == 1)  len_land_vec = len_land_vec+ 1
-       enddo
-    enddo
+  !   allocate(tile2vector(len_land_vec,2))
 
-    write(6,*) 'Number of land points on rank ', myrank, ' :',  len_land_vec
+  !   nn=0
+  !   do i = 1, res
+  !      do j = 1, res
+  !         if ( slmsk(i,j) == 1)   then
+  !            nn=nn+1
+  !            tile2vector(nn,1) = i
+  !            tile2vector(nn,2) = j
+  !         endif
+  !      enddo
+  !   enddo
 
-    allocate(tile2vector(len_land_vec,2))
-
-    nn=0
-    do i = 1, res
-       do j = 1, res
-          if ( slmsk(i,j) == 1)   then
-             nn=nn+1
-             tile2vector(nn,1) = i
-             tile2vector(nn,2) = j
-          endif
-       enddo
-    enddo
-
-  end subroutine get_fv3_mapping
+  ! end subroutine get_fv3_mapping
 
 
   !--------------------------------------------------------------
   ! open fv3 restart, and read in required variables
   ! file is opened as read/write and remains open
   !--------------------------------------------------------------
-  subroutine read_fv3_restart(myrank, date_str, hour_str, res, ncid, &
-       len_land_vec,tile2vector, jedi_state)
+  ! subroutine read_wrf_hydro_restart(myrank, date_str, hour_str, we_res, sn_res, ncid, &
+  !      len_land_vec,tile2vector, jedi_state)
+  subroutine read_wrf_hydro_restart(myrank, date_str, hour_str, we_res, &
+       sn_res, ncid, jedi_state)
     use mpi
     implicit none
 
-
-
-    integer, intent(in) :: myrank, res, len_land_vec
+    integer, intent(in) :: myrank, we_res, sn_res !, len_land_vec
     character(len=8), intent(in) :: date_str
     character(len=2), intent(in) :: hour_str
-    integer, intent(in) :: tile2vector(len_land_vec,2)
+    ! integer, intent(in) :: tile2vector(len_land_vec,2)
 
     integer, intent(out) :: ncid
     type(jedi_type), intent(inout)  :: jedi_state
@@ -212,12 +203,15 @@ contains
     character(len=100) :: restart_file
     character(len=1) :: rankch
     logical :: file_exists
-    integer :: ierr, mpierr, id_dim, fres
+    integer :: ierr, mpierr, id_dim, fwe_res, fsn_res
     integer :: nn
 
     ! OPEN FILE
     write(rankch, '(i1.1)') (myrank+1)
-    restart_file = date_str//"."//hour_str//"0000.sfc_data.tile"//rankch//".nc"
+    ! restart_file = &
+    ! date_str//"."//hour_str//"0000.sfc_data.tile"//rankch//".nc"
+    restart_file = "RESTART."//date_str//hour_str//"_DOMAIN1"
+    ! print *, "RESTART_FILE=", RESTART_FILE
 
     inquire(file=trim(restart_file), exist=file_exists)
 
@@ -233,80 +227,95 @@ contains
     call netcdf_err(ierr, 'opening file: '//trim(restart_file) )
 
     ! CHECK DIMENSIONS
-    ierr=nf90_inq_dimid(ncid, 'xaxis_1', id_dim)
-    call netcdf_err(ierr, 'reading xaxis_1' )
-    ierr=nf90_inquire_dimension(ncid,id_dim,len=fres)
-    call netcdf_err(ierr, 'reading xaxis_1' )
+    ! ierr=nf90_inq_dimid(ncid, 'xaxis_1', id_dim)
+    ! call netcdf_err(ierr, 'reading xaxis_1' )
+    ! ierr=nf90_inquire_dimension(ncid,id_dim,len=fres)
+    ! call netcdf_err(ierr, 'reading xaxis_1' )
+    ierr=nf90_inq_dimid(ncid, 'west_east', id_dim)
+    call netcdf_err(ierr, 'reading west_east' )
+    ierr=nf90_inquire_dimension(ncid,id_dim,len=fwe_res)
+    call netcdf_err(ierr, 'reading west_east' )
 
-    if ( fres /= res) then
+    ierr=nf90_inq_dimid(ncid, 'south_north', id_dim)
+    call netcdf_err(ierr, 'reading south_north' )
+    ierr=nf90_inquire_dimension(ncid,id_dim,len=fsn_res)
+    call netcdf_err(ierr, 'reading south_north' )
+
+    if ( fwe_res /= we_res .or. fsn_res /= sn_res) then
        print*,'fatal error: dimensions wrong.'
        call MPI_Abort(MPI_COMM_WORLD, ierr, mpierr)
     endif
 
+
     ! read swe (file name: sheleg, vert dim 1)
-    call read_nc_var2D(ncid, len_land_vec, res, tile2vector, 0, &
-         'sheleg    ', jedi_state%swe)
+    call read_nc_var2D(ncid, we_res, sn_res, 0, &
+         'SNEQV     ', jedi_state%swe)
 
-    ! read snow_depth (file name: snwdph, vert dim 1)
-    call read_nc_var2D(ncid, len_land_vec, res, tile2vector, 0, &
-         'snwdph    ', jedi_state%snow_depth)
+    ! ! read swe (file name: sheleg, vert dim 1)
+    ! call read_nc_var2D(ncid, len_land_vec, res, tile2vector, 0, &
+    !      'sheleg    ', jedi_state%swe)
 
-    ! read active_snow_layers (file name: snowxy, vert dim: 1)
-    call read_nc_var2D(ncid, len_land_vec, res, tile2vector, 0, &
-         'snowxy    ', jedi_state%active_snow_layers)
+    ! ! read snow_depth (file name: snwdph, vert dim 1)
+    ! call read_nc_var2D(ncid, len_land_vec, res, tile2vector, 0, &
+    !      'snwdph    ', jedi_state%snow_depth)
 
-    ! read swe_previous (file name: sneqvoxy, vert dim: 1)
-    call read_nc_var2D(ncid, len_land_vec, res, tile2vector, 0, &
-         'sneqvoxy  ', jedi_state%swe_previous)
+    ! ! read active_snow_layers (file name: snowxy, vert dim: 1)
+    ! call read_nc_var2D(ncid, len_land_vec, res, tile2vector, 0, &
+    !      'snowxy    ', jedi_state%active_snow_layers)
 
-    ! read snow_soil_interface (file name: zsnsoxy, vert dim: 7)
-    call read_nc_var3D(ncid, len_land_vec, res, 7,  tile2vector, &
-         'zsnsoxy   ', jedi_state%snow_soil_interface)
+    ! ! read swe_previous (file name: sneqvoxy, vert dim: 1)
+    ! call read_nc_var2D(ncid, len_land_vec, res, tile2vector, 0, &
+    !      'sneqvoxy  ', jedi_state%swe_previous)
 
-    ! read temperature_snow (file name: tsnoxy, vert dim: 3)
-    call read_nc_var3D(ncid, len_land_vec, res, 3, tile2vector, &
-         'tsnoxy    ', jedi_state%temperature_snow)
+    ! ! read snow_soil_interface (file name: zsnsoxy, vert dim: 7)
+    ! call read_nc_var3D(ncid, len_land_vec, res, 7,  tile2vector, &
+    !      'zsnsoxy   ', jedi_state%snow_soil_interface)
 
-    ! read snow_ice_layer (file name:  snicexy, vert dim: 3)
-    call read_nc_var3D(ncid, len_land_vec, res, 3, tile2vector, &
-         'snicexy    ', jedi_state%snow_ice_layer)
+    ! ! read temperature_snow (file name: tsnoxy, vert dim: 3)
+    ! call read_nc_var3D(ncid, len_land_vec, res, 3, tile2vector, &
+    !      'tsnoxy    ', jedi_state%temperature_snow)
 
-    ! read snow_liq_layer (file name: snliqxy, vert dim: 3)
-    call read_nc_var3D(ncid, len_land_vec, res, 3, tile2vector, &
-         'snliqxy   ', jedi_state%snow_liq_layer)
+    ! ! read snow_ice_layer (file name:  snicexy, vert dim: 3)
+    ! call read_nc_var3D(ncid, len_land_vec, res, 3, tile2vector, &
+    !      'snicexy    ', jedi_state%snow_ice_layer)
 
-    ! read temperature_soil (file name: stc, use layer 1 only, vert dim: 1)
-    call read_nc_var2D(ncid, len_land_vec, res, tile2vector, 4, &
-         'stc       ', jedi_state%temperature_soil)
+    ! ! read snow_liq_layer (file name: snliqxy, vert dim: 3)
+    ! call read_nc_var3D(ncid, len_land_vec, res, 3, tile2vector, &
+    !      'snliqxy   ', jedi_state%snow_liq_layer)
 
-  end subroutine read_fv3_restart
+    ! ! read temperature_soil (file name: stc, use layer 1 only, vert dim: 1)
+    ! call read_nc_var2D(ncid, len_land_vec, res, tile2vector, 4, &
+    !      'stc       ', jedi_state%temperature_soil)
+
+  end subroutine read_wrf_hydro_restart
 
   !--------------------------------------------------------------
   !  read in snow depth increment from jedi increment file
   !  file format is same as restart file
   !--------------------------------------------------------------
-  subroutine read_fv3_increment(myrank, date_str, hour_str, res, &
-       len_land_vec,tile2vector, increment)
+  subroutine read_wrf_hydro_increment(myrank, date_str, hour_str, we_res, &
+       sn_res, increment)
     use mpi
     implicit none
 
-
-    integer, intent(in) :: myrank, res, len_land_vec
+    integer, intent(in) :: myrank, we_res, sn_res
     character(len=8), intent(in) :: date_str
     character(len=2), intent(in) :: hour_str
-    integer, intent(in) :: tile2vector(len_land_vec,2)
-    double precision, intent(out) :: increment(len_land_vec)     ! snow depth increment
+    ! integer, intent(in) :: tile2vector(len_land_vec,2)
+    double precision, intent(out) :: increment(we_res, sn_res)     ! snow depth increment
 
     character(len=100) :: incr_file
     character(len=1) :: rankch
     logical :: file_exists
     integer :: ierr, mpierr
-    integer :: id_dim, id_var, fres, ncid
+    integer :: id_dim, id_var, fwe_res, fsn_res, ncid
     integer :: nn
 
     ! OPEN FILE
     write(rankch, '(i1.1)') (myrank+1)
-    incr_file = date_str//"."//hour_str//"0000.xainc.sfc_data.tile"//rankch//".nc"
+    ! incr_file = date_str//"."//hour_str//"0000.xainc.sfc_data.tile"//rankch//".nc"
+    incr_file = "INCREMENT."//date_str//hour_str//"_DOMAIN1"
+    print *, "WARNING :: FOR TESTING INCREMENT FILE IS ", incr_file
 
     inquire(file=trim(incr_file), exist=file_exists)
 
@@ -322,19 +331,30 @@ contains
     call netcdf_err(ierr, 'opening file: '//trim(incr_file) )
 
     ! CHECK DIMENSIONS
-    ierr=nf90_inq_dimid(ncid, 'xaxis_1', id_dim)
-    call netcdf_err(ierr, 'reading xaxis_1' )
-    ierr=nf90_inquire_dimension(ncid,id_dim,len=fres)
-    call netcdf_err(ierr, 'reading xaxis_1' )
+    ! ierr=nf90_inq_dimid(ncid, 'xaxis_1', id_dim)
+    ! call netcdf_err(ierr, 'reading xaxis_1' )
+    ! ierr=nf90_inquire_dimension(ncid,id_dim,len=fres)
+    ! call netcdf_err(ierr, 'reading xaxis_1' )
+    ierr=nf90_inq_dimid(ncid, 'west_east', id_dim)
+    call netcdf_err(ierr, 'reading west_east' )
+    ierr=nf90_inquire_dimension(ncid,id_dim,len=fwe_res)
+    call netcdf_err(ierr, 'reading west_east' )
 
-    if ( fres /= res) then
+    ierr=nf90_inq_dimid(ncid, 'south_north', id_dim)
+    call netcdf_err(ierr, 'reading south_north' )
+    ierr=nf90_inquire_dimension(ncid,id_dim,len=fsn_res)
+    call netcdf_err(ierr, 'reading south_north' )
+
+    if ( fwe_res /= we_res .or. fsn_res /= sn_res) then
        print*,'fatal error: dimensions wrong.'
        call MPI_Abort(MPI_COMM_WORLD, ierr, mpierr)
     endif
 
     ! read snow_depth (file name: snwdph, vert dim 1)
-    call read_nc_var2D(ncid, len_land_vec, res, tile2vector, 0, &
-         'snwdph    ', increment)
+    ! call read_nc_var2D(ncid, len_land_vec, res, tile2vector, 0, &
+    !      'snwdph    ', increment)
+    call read_nc_var2D(ncid, we_res, sn_res, 0, &
+         'SNEQV     ', jedi_state%swe)
 
     ! close file
     write (6, *) 'closing ', trim(incr_file)
@@ -342,29 +362,32 @@ contains
     ierr=nf90_close(ncid)
     call netcdf_err(ierr, 'closing file: '//trim(incr_file) )
 
-  end subroutine  read_fv3_increment
+  end subroutine  read_wrf_hydro_increment
 
   !--------------------------------------------------------
   ! Subroutine to read in a 2D variable from netcdf file,
   ! and save to jedi vector
   !--------------------------------------------------------
 
-  subroutine read_nc_var2D(ncid, len_land_vec, res, tile2vector, in3D_vdim,  &
-       var_name, data_vec)
+  ! subroutine read_nc_var2D(ncid, len_land_vec, res, tile2vector, in3D_vdim,  &
+  !      var_name, data_vec)
+  subroutine read_nc_var2D(ncid, we_res, sn_res, in3D_vdim,  &
+       var_name, data)
 
-    integer, intent(in)             :: ncid, len_land_vec, res
+    integer, intent(in)             :: ncid, we_res, sn_res !, len_land_vec
     character(len=10), intent(in)   :: var_name
-    integer, intent(in)             :: tile2vector(len_land_vec,2)
+    ! integer, intent(in)             :: tile2vector(len_land_vec,2)
     integer, intent(in)             :: in3D_vdim ! 0 - input is 2D,
     ! >0, gives dim of 3rd dimension
-    double precision, intent(out)   :: data_vec(len_land_vec)
+    double precision, intent(out)   :: data(we_res,sn_res)
 
-    double precision :: dummy2D(res, res)
-    double precision :: dummy3D(res, res, in3D_vdim)
-    integer          :: nn, ierr, id_var
+    double precision :: dummy2D(we_res, sn_res)
+    double precision :: dummy3D(we_res, sn_res, in3D_vdim)
+    integer          :: i, j, ierr, id_var
 
     ierr=nf90_inq_varid(ncid, trim(var_name), id_var)
     call netcdf_err(ierr, 'reading '//var_name//' id' )
+
     if (in3D_vdim==0) then
        ierr=nf90_get_var(ncid, id_var, dummy2D)
        call netcdf_err(ierr, 'reading '//var_name//' data' )
@@ -375,8 +398,10 @@ contains
        dummy2D=dummy3D(:,:,1)
     endif
 
-    do nn=1,len_land_vec
-       data_vec(nn) = dummy2D(tile2vector(nn,1), tile2vector(nn,2))
+    do j=1,sn_res
+       do i=1,we_res
+          data(i,j) = dummy2D(i,j)
+       enddo
     enddo
 
   end subroutine read_nc_var2D
