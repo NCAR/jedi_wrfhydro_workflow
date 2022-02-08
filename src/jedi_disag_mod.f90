@@ -38,6 +38,8 @@ contains
          snow_liq_layer => jedi%snow_liq_layer     ,&
          temperature_soil => jedi%temperature_soil )
 
+      print *, "-------", increment(2,2), "VS", swe(2,2)
+
       do j = 1, sn_res
       do i = 1, we_res
 

@@ -13,7 +13,7 @@ all: build
 build: $(OBJS)
 	$(FC) $(OBJS) $(FFLAGS) -o $(EXE)
 
-jedi_snow_incr.o: jedi_disag_mod.o
+jedi_snow_incr.o: jedi_disag_mod.o input_var_names.o
 
 install:
 	-cp -p $(CMD) ../exec/.
