@@ -48,7 +48,6 @@ contains
          if(anal_snow_depth <=  0.0001) then ! correct negative snow depth here
             ! also ignore small increments
 
-            print *, "ARTLESS FIX SWE"
             swe                (i,j)   = 0.0
             snow_depth         (i,j)   = 0.0
             active_snow_layers (i,j)   = 0.0
@@ -130,14 +129,13 @@ contains
 
                snow_depth(i,j) = -snow_soil_interface(i,3,j) * 1000.d0
 
-               print *, "ARTLESS FIX SWE"
                swe(i,j) = 0.0
 
                do zlayer = 1, 3
                   swe(i,j) = swe(i,j) + snow_ice_layer(i,zlayer,j) + snow_liq_layer(i,zlayer,j)
                end do
 
-               swe_previous(i,j) = swe(i,j) ! ARTLESS FIX SWE
+               swe_previous(i,j) = swe(i,j)
 
                if(snow_depth(i,j) < 25.d0) then  ! go out of multi-layer mode
                   active_snow_layers (i,j) = 0.d0

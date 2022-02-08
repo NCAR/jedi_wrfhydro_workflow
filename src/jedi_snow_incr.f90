@@ -11,7 +11,7 @@ program jedi_snow_incr
   double precision, allocatable :: increment(:,:)
   integer :: restart_file, increment_file
   integer :: ierr, nprocs, myrank, lunit, ncid
-  integer :: snow_layers, sosn_layers !sosn=soil+snow layers
+  integer :: snow_layers, soil_layers, sosn_layers !sosn=soil+snow layers
   logical :: file_exists
 
   ! namelist /jedi_snow/ date_str, hour_str, we_res ,sn_res
@@ -27,6 +27,7 @@ program jedi_snow_incr
 
   ! SET-UP THE JEDI STATE AND INCREMENT
   snow_layers = 3
+  soil_layers = 4
   sosn_layers = 7
   allocate(jedi_state%swe(we_res, sn_res))
   allocate(jedi_state%snow_depth         (we_res, sn_res))
@@ -45,7 +46,7 @@ program jedi_snow_incr
   ! ADJUST THE RESTART
   print *, "WARNING :: ADD UPDATEALLLAYERS BACK IN!!"
   ! call updateAllLayers(len_land_vec, increment, jedi_state)
-  ! call updateAllLayers(we_res, sn_res, increment, jedi_state)
+  call updateAllLayers(we_res, sn_res, increment, jedi_state)
 
   ! WRITE OUT ADJUSTED RESTART
   print *, "WARNING :: ADD AND FIND WRITE_WRF_HYDRO_RESTART BACK IN!!"
@@ -240,46 +241,42 @@ contains
     integer :: ierr, mpierr, id_dim, fwe_res, fsn_res
     integer :: nn
 
-
     ! read swe (file name: sheleg, vert dim 1)
     call read_nc_var2D(f, we_res, sn_res, 0, &
          'SNEQV     ', jedi_state%swe)
 
-    ! ! read swe (file name: sheleg, vert dim 1)
-    ! call read_nc_var2D(ncid, len_land_vec, res, tile2vector, 0, &
-    !      'sheleg    ', jedi_state%swe)
-
-    ! ! read snow_depth (file name: snwdph, vert dim 1)
-    ! call read_nc_var2D(ncid, len_land_vec, res, tile2vector, 0, &
-    !      'snwdph    ', jedi_state%snow_depth)
+    ! read snow_depth (file name: snwdph, vert dim 1)
+    call read_nc_var2D(f, we_res, sn_res, 0, &
+         'SNOWH     ', jedi_state%snow_depth)
 
     ! ! read active_snow_layers (file name: snowxy, vert dim: 1)
-    ! call read_nc_var2D(ncid, len_land_vec, res, tile2vector, 0, &
-    !      'snowxy    ', jedi_state%active_snow_layers)
+    call read_nc_var2D(f, we_res, sn_res, 0, &
+         'ISNOW     ', jedi_state%active_snow_layers)
+    print *, "WARNING :: check ISNOW equivalent to active_snow_layers"
 
-    ! ! read swe_previous (file name: sneqvoxy, vert dim: 1)
-    ! call read_nc_var2D(ncid, len_land_vec, res, tile2vector, 0, &
-    !      'sneqvoxy  ', jedi_state%swe_previous)
+    ! read swe_previous (file name: sneqvoxy, vert dim: 1)
+    call read_nc_var2D(f, we_res, sn_res, 0, &
+         'SNEQVO    ', jedi_state%swe_previous)
 
-    ! ! read snow_soil_interface (file name: zsnsoxy, vert dim: 7)
-    ! call read_nc_var3D(ncid, len_land_vec, res, 7,  tile2vector, &
-    !      'zsnsoxy   ', jedi_state%snow_soil_interface)
+    ! read snow_soil_interface (file name: zsnsoxy, vert dim: 7)
+    call read_nc_var3D(f, we_res, sn_res, 7, &
+         'ZSNSO     ', jedi_state%snow_soil_interface)
 
-    ! ! read temperature_snow (file name: tsnoxy, vert dim: 3)
-    ! call read_nc_var3D(ncid, len_land_vec, res, 3, tile2vector, &
-    !      'tsnoxy    ', jedi_state%temperature_snow)
+    ! read temperature_snow (file name: tsnoxy, vert dim: 3)
+    call read_nc_var3D(f, we_res, sn_res, 3, &
+         'SNOW_T    ', jedi_state%temperature_snow)
 
-    ! ! read snow_ice_layer (file name:  snicexy, vert dim: 3)
-    ! call read_nc_var3D(ncid, len_land_vec, res, 3, tile2vector, &
-    !      'snicexy    ', jedi_state%snow_ice_layer)
+    ! read snow_ice_layer (file name:  snicexy, vert dim: 3)
+    call read_nc_var3D(f, we_res, sn_res, 3, &
+         'SNICE     ', jedi_state%snow_ice_layer)
 
-    ! ! read snow_liq_layer (file name: snliqxy, vert dim: 3)
-    ! call read_nc_var3D(ncid, len_land_vec, res, 3, tile2vector, &
-    !      'snliqxy   ', jedi_state%snow_liq_layer)
+    ! read snow_liq_layer (file name: snliqxy, vert dim: 3)
+    call read_nc_var3D(f, we_res, sn_res, 3, &
+         'SNLIQ     ', jedi_state%snow_liq_layer)
 
-    ! ! read temperature_soil (file name: stc, use layer 1 only, vert dim: 1)
-    ! call read_nc_var2D(ncid, len_land_vec, res, tile2vector, 4, &
-    !      'stc       ', jedi_state%temperature_soil)
+    ! read temperature_soil (file name: stc, use layer 1 only, vert dim: 1)
+    call read_nc_var2D(f, we_res, sn_res, 4, &
+         'SOIL_T    ', jedi_state%temperature_soil)
 
   end subroutine read_wrf_hydro_restart
 
@@ -308,7 +305,6 @@ contains
   ! Subroutine to read in a 2D variable from netcdf file,
   ! and save to jedi vector
   !--------------------------------------------------------
-
   ! subroutine read_nc_var2D(ncid, len_land_vec, res, tile2vector, in3D_vdim,  &
   !      var_name, data_vec)
   subroutine read_nc_var2D(ncid, we_res, sn_res, in3D_vdim,  &
@@ -322,7 +318,7 @@ contains
     double precision, intent(out)   :: data(we_res,sn_res)
 
     double precision :: dummy2D(we_res, sn_res)
-    double precision :: dummy3D(we_res, sn_res, in3D_vdim)
+    double precision, allocatable :: dummy3D(:,:,:)
     integer          :: i, j, ierr, id_var
 
     ierr=nf90_inq_varid(ncid, trim(var_name), id_var)
@@ -333,9 +329,10 @@ contains
        call netcdf_err(ierr, 'reading '//var_name//' data' )
     else  ! special case for reading in 3D variable, and retaining only
        ! level 1
+       allocate(dummy3D(we_res, in3D_vdim, sn_res))
        ierr=nf90_get_var(ncid, id_var, dummy3D)
        call netcdf_err(ierr, 'reading '//var_name//' data' )
-       dummy2D=dummy3D(:,:,1)
+       dummy2D=dummy3D(:,1,:)
     endif
 
     do j=1,sn_res
@@ -350,27 +347,23 @@ contains
   ! Subroutine to read in a 3D variable from netcdf file,
   ! and save to jedi vector
   !--------------------------------------------------------
-
-  subroutine read_nc_var3D(ncid, len_land_vec, res, vdim,  &
-       tile2vector, var_name, data_vec)
-
-    integer, intent(in)             :: ncid, len_land_vec, res, vdim
+  ! subroutine read_nc_var3D(ncid, len_land_vec, res, vdim,  &
+  !      tile2vector, var_name, data_vec)
+  subroutine read_nc_var3D(ncid, we_res, sn_res, zdim, var_name, data)
+    integer, intent(in)             :: ncid, we_res, sn_res, zdim
     character(len=10), intent(in)   :: var_name
-    integer, intent(in)             :: tile2vector(len_land_vec,2)
-    double precision, intent(out)   :: data_vec(len_land_vec, vdim)
-
-    double precision :: dummy3D(res, res, vdim)
-    integer          :: nn, ierr, id_var
+    double precision, intent(out)   :: data(we_res, zdim, sn_res)
+    ! double precision :: dummy3D(we_res, zdim, sn_res)
+    integer          :: ierr, id_var !, nn
 
     ierr=nf90_inq_varid(ncid, trim(var_name), id_var)
     call netcdf_err(ierr, 'reading '//var_name//' id' )
-    ierr=nf90_get_var(ncid, id_var, dummy3D)
+    ierr=nf90_get_var(ncid, id_var, data) !dummy3D)
     call netcdf_err(ierr, 'reading '//var_name//' data' )
 
-    do nn=1,len_land_vec
-       data_vec(nn,:) = dummy3D(tile2vector(nn,1), tile2vector(nn,2), :)
-    enddo
-
+    ! do nn=1,len_land_vec
+    !    data_vec(nn,:) = dummy3D(tile2vector(nn,1), tile2vector(nn,2), :)
+    ! enddo
   end subroutine read_nc_var3D
 
   !--------------------------------------------------------------
@@ -476,7 +469,6 @@ contains
   !--------------------------------------------------------
   ! Subroutine to write a 3D variable to the netcdf file
   !--------------------------------------------------------
-
   subroutine write_nc_var3D(ncid, len_land_vec, res, vdim, &
        tile2vector, var_name, data_vec)
 
