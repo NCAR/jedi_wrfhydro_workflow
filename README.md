@@ -14,7 +14,7 @@ Used in conjunction with [WRF-Hydro/NWM JEDI Implementation](https://github.com/
 1. Load needed modules
 
 2. Build
-`$ make` or `$make build`
+`$ make` or `$ make build`
 
 3. Run
-`$ ./jedi_increment`
+`$ ./jedi_increment RESTART.FILE RESTART.FILE.INCREMENTED`
