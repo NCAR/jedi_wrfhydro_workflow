@@ -46,7 +46,6 @@ program jedi_snow_incr
 
   ! ADJUST THE RESTART
   print *, "Updating Data"
-  ! call updateAllLayers(len_land_vec, increment, jedi_state)
   call updateAllLayers(we_res, sn_res, increment, jedi_state)
 
   ! WRITE OUT ADJUSTED RESTART
