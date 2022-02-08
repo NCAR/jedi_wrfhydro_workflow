@@ -1,27 +1,28 @@
 module jedi_disag_module
   private
-  public jedi_type, UpdateAllLayers
+  public jedi_type, updateAllLayers
 
   type jedi_type
-     double precision, allocatable :: swe                (:)
-     double precision, allocatable :: snow_depth         (:)
-     double precision, allocatable :: active_snow_layers (:)
-     double precision, allocatable :: swe_previous       (:)
-     double precision, allocatable :: snow_soil_interface(:,:)
-     double precision, allocatable :: temperature_snow   (:,:)
-     double precision, allocatable :: snow_ice_layer     (:,:)
-     double precision, allocatable :: snow_liq_layer     (:,:)
-     double precision, allocatable :: temperature_soil   (:)
+     double precision, allocatable :: swe                (:,:)
+     double precision, allocatable :: snow_depth         (:,:)
+     double precision, allocatable :: active_snow_layers (:,:)
+     double precision, allocatable :: swe_previous       (:,:)
+     double precision, allocatable :: snow_soil_interface(:,:,:)
+     double precision, allocatable :: temperature_snow   (:,:,:)
+     double precision, allocatable :: snow_ice_layer     (:,:,:)
+     double precision, allocatable :: snow_liq_layer     (:,:,:)
+     double precision, allocatable :: temperature_soil   (:,:)
   end type jedi_type
 
 contains
 
-  subroutine updateAllLayers(vector_length, increment, jedi)
-    integer, intent(in) :: vector_length
-    double precision, intent(in) :: increment(vector_length) ! snow depth increment
+  subroutine updateAllLayers(we_res, sn_res, increment, jedi)
+    integer, intent(in) :: we_res, sn_res
+    ! snow depth increment
+    double precision, intent(in) :: increment(we_res, sn_res)
     type(jedi_type), intent(inout)   :: jedi
 
-    integer :: iloc, ilayer, iinter, active_layers, vector_loc, pathway
+    integer :: i, j, zlayer, zinter, active_layers, vector_loc, pathway
     double precision :: layer_density, swe_increment, liq_ratio
     double precision :: soil_interfaces(7) = (/0.0,0.0,0.0,0.1,0.4,1.0,2.0/)
     double precision :: partition_ratio, layer_depths(3), anal_snow_depth
@@ -37,80 +38,84 @@ contains
          snow_liq_layer => jedi%snow_liq_layer     ,&
          temperature_soil => jedi%temperature_soil )
 
-      do iloc = 1, vector_length
+      do j = 1, sn_res
+      do i = 1, we_res
 
          pathway = 0
 
-         anal_snow_depth = snow_depth(iloc) + increment(iloc) ! analysed bulk snow depth
+         anal_snow_depth = snow_depth(i,j) + increment(i,j) ! analysed bulk snow depth
 
          if(anal_snow_depth <=  0.0001) then ! correct negative snow depth here
             ! also ignore small increments
 
-            swe                (iloc)   = 0.0
-            snow_depth         (iloc)   = 0.0
-            active_snow_layers (iloc)   = 0.0
-            swe_previous       (iloc)   = 0.0
-            snow_soil_interface(iloc,:) = (/0.0,0.0,0.0,-0.1,-0.4,-1.0,-2.0/)
-            temperature_snow   (iloc,:) = 0.0
-            snow_ice_layer     (iloc,:) = 0.0
-            snow_liq_layer     (iloc,:) = 0.0
+            print *, "ARTLESS FIX SWE"
+            swe                (i,j)   = 0.0
+            snow_depth         (i,j)   = 0.0
+            active_snow_layers (i,j)   = 0.0
+            swe_previous       (i,j)   = 0.0
+            snow_soil_interface(i,:,j) = (/0.0,0.0,0.0,-0.1,-0.4,-1.0,-2.0/)
+            temperature_snow   (i,:,j) = 0.0
+            snow_ice_layer     (i,:,j) = 0.0
+            snow_liq_layer     (i,:,j) = 0.0
 
          else
 
-            active_layers = nint(active_snow_layers(iloc))  ! number of active layers (0,-1,-2,-3)
+            active_layers = nint(active_snow_layers(i,j))  ! number of active layers (0,-1,-2,-3)
 
             if(active_layers < 0) then  ! in multi-layer mode
 
-               layer_depths(1) = snow_soil_interface(iloc,1)
-               layer_depths(2) = snow_soil_interface(iloc,2)-snow_soil_interface(iloc,1)
-               layer_depths(3) = snow_soil_interface(iloc,3)-snow_soil_interface(iloc,2)
+               layer_depths(1) = snow_soil_interface(i,1,j)
+               layer_depths(2) = snow_soil_interface(i,2,j) - &
+                    snow_soil_interface(i,1,j)
+               layer_depths(3) = snow_soil_interface(i,3,j) - &
+                    snow_soil_interface(i,2,j)
 
-               if(increment(iloc) > 0.0) then  ! add snow in multi-layer mode
+               if(increment(i,j) > 0.0) then  ! add snow in multi-layer mode
 
                   pathway = 1
 
                   vector_loc = 4 + active_layers  ! location in vector of top layer
 
-                  layerloop: do ilayer = vector_loc, 3
+                  layerloop: do zlayer = vector_loc, 3
 
-                     partition_ratio = -layer_depths(ilayer)/snow_depth(iloc)*1000.d0
-                     layer_density = (snow_ice_layer(iloc,ilayer)+snow_liq_layer(iloc,ilayer)) / &
-                          (-layer_depths(ilayer))
-                     swe_increment = partition_ratio * increment(iloc) * layer_density / 1000.d0
-                     liq_ratio = snow_liq_layer(iloc,ilayer) / &
-                          ( snow_ice_layer(iloc,ilayer) + snow_liq_layer(iloc,ilayer) )
-                     snow_ice_layer(iloc,ilayer) = snow_ice_layer(iloc,ilayer) + &
+                     partition_ratio = -layer_depths(zlayer)/snow_depth(i,j)*1000.d0
+                     layer_density = (snow_ice_layer(i,zlayer,j)+snow_liq_layer(i,zlayer,j)) / &
+                          (-layer_depths(zlayer))
+                     swe_increment = partition_ratio * increment(i,j) * layer_density / 1000.d0
+                     liq_ratio = snow_liq_layer(i,zlayer,j) / &
+                          ( snow_ice_layer(i,zlayer,j) + snow_liq_layer(i,zlayer,j) )
+                     snow_ice_layer(i,zlayer,j) = snow_ice_layer(i,zlayer,j) + &
                           (1.0 - liq_ratio) * swe_increment
-                     snow_liq_layer(iloc,ilayer) = snow_liq_layer(iloc,ilayer) + &
+                     snow_liq_layer(i,zlayer,j) = snow_liq_layer(i,zlayer,j) + &
                           liq_ratio * swe_increment
-                     do iinter = ilayer, 3  ! remove snow from each snow layer
-                        snow_soil_interface(iloc,iinter) = snow_soil_interface(iloc,iinter) - &
-                             partition_ratio * increment(iloc)/1000.d0
+                     do zinter = zlayer, 3  ! remove snow from each snow layer
+                        snow_soil_interface(i,zinter,j) = snow_soil_interface(i,zinter,j) - &
+                             partition_ratio * increment(i,j)/1000.d0
                      end do
 
                   end do layerloop
 
-               elseif(increment(iloc) < 0.0) then  ! remove snow in multi-layer mode
+               elseif(increment(i,j) < 0.0) then  ! remove snow in multi-layer mode
 
                   pathway = 2
 
                   vector_loc = 4 + active_layers  ! location in vector of top layer
 
-                  do ilayer = vector_loc, 3
+                  do zlayer = vector_loc, 3
 
-                     partition_ratio = -layer_depths(ilayer)/snow_depth(iloc)*1000.d0
-                     layer_density = (snow_ice_layer(iloc,ilayer)+snow_liq_layer(iloc,ilayer)) / &
-                          (-layer_depths(ilayer))
-                     swe_increment = partition_ratio * increment(iloc) * layer_density / 1000.d0
-                     liq_ratio = snow_liq_layer(iloc,ilayer) / &
-                          ( snow_ice_layer(iloc,ilayer) + snow_liq_layer(iloc,ilayer) )
-                     snow_ice_layer(iloc,ilayer) = snow_ice_layer(iloc,ilayer) + &
+                     partition_ratio = -layer_depths(zlayer)/snow_depth(i,j)*1000.d0
+                     layer_density = (snow_ice_layer(i,zlayer,j)+snow_liq_layer(i,zlayer,j)) / &
+                          (-layer_depths(zlayer))
+                     swe_increment = partition_ratio * increment(i,j) * layer_density / 1000.d0
+                     liq_ratio = snow_liq_layer(i,zlayer,j) / &
+                          ( snow_ice_layer(i,zlayer,j) + snow_liq_layer(i,zlayer,j) )
+                     snow_ice_layer(i,zlayer,j) = snow_ice_layer(i,zlayer,j) + &
                           (1.0 - liq_ratio) * swe_increment
-                     snow_liq_layer(iloc,ilayer) = snow_liq_layer(iloc,ilayer) + &
+                     snow_liq_layer(i,zlayer,j) = snow_liq_layer(i,zlayer,j) + &
                           liq_ratio * swe_increment
-                     do iinter = ilayer, 3  ! remove snow from each snow layer
-                        snow_soil_interface(iloc,iinter) = snow_soil_interface(iloc,iinter) - &
-                             partition_ratio * increment(iloc)/1000.d0
+                     do zinter = zlayer, 3  ! remove snow from each snow layer
+                        snow_soil_interface(i,zinter,j) = snow_soil_interface(i,zinter,j) - &
+                             partition_ratio * increment(i,j)/1000.d0
                      end do
 
                   end do ! layerloop
@@ -119,73 +124,74 @@ contains
 
                ! For multi-layer mode, recalculate interfaces and sum depth/swe
 
-               do ilayer = 4, 7
-                  snow_soil_interface(iloc,ilayer) = snow_soil_interface(iloc,3) - soil_interfaces(ilayer)
+               do zlayer = 4, 7
+                  snow_soil_interface(i,zlayer,j) = snow_soil_interface(i,3,j) - soil_interfaces(zlayer)
                end do
 
-               snow_depth(iloc) = -snow_soil_interface(iloc,3) * 1000.d0
+               snow_depth(i,j) = -snow_soil_interface(i,3,j) * 1000.d0
 
-               swe(iloc) = 0.0
+               print *, "ARTLESS FIX SWE"
+               swe(i,j) = 0.0
 
-               do ilayer = 1, 3
-                  swe(iloc) = swe(iloc) + snow_ice_layer(iloc,ilayer) + snow_liq_layer(iloc,ilayer)
+               do zlayer = 1, 3
+                  swe(i,j) = swe(i,j) + snow_ice_layer(i,zlayer,j) + snow_liq_layer(i,zlayer,j)
                end do
 
-               swe_previous(iloc) = swe(iloc)
+               swe_previous(i,j) = swe(i,j) ! ARTLESS FIX SWE
 
-               if(snow_depth(iloc) < 25.d0) then  ! go out of multi-layer mode
-                  active_snow_layers (iloc) = 0.d0
-                  snow_soil_interface(iloc,:) = (/0.0,0.0,0.0,-0.1,-0.4,-1.0,-2.0/)
-                  temperature_snow   (iloc,:) = 0.0
-                  snow_ice_layer     (iloc,:) = 0.0
-                  snow_liq_layer     (iloc,:) = 0.0
+               if(snow_depth(i,j) < 25.d0) then  ! go out of multi-layer mode
+                  active_snow_layers (i,j) = 0.d0
+                  snow_soil_interface(i,:,j) = (/0.0,0.0,0.0,-0.1,-0.4,-1.0,-2.0/)
+                  temperature_snow   (i,:,j) = 0.0
+                  snow_ice_layer     (i,:,j) = 0.0
+                  snow_liq_layer     (i,:,j) = 0.0
                end if
 
             elseif(active_layers == 0) then  ! snow starts in zero-layer mode
 
-               if(increment(iloc) > 0.0) then  ! add snow in zero-layer mode
+               if(increment(i,j) > 0.0) then  ! add snow in zero-layer mode
 
-                  if(snow_depth(iloc) == 0) then   ! no snow present, so assume density based on soil temperature
+                  if(snow_depth(i,j) == 0) then   ! no snow present, so assume density based on soil temperature
                      pathway = 3
-                     layer_density = max(80.0,min(120.,67.92+51.25*exp((temperature_soil(iloc)-273.15)/2.59)))
+                     layer_density = max(80.0,min(120.,67.92+51.25*exp((temperature_soil(i,j)-273.15)/2.59)))
                   else   ! use existing density
                      pathway = 4
-                     layer_density = swe(iloc) / snow_depth(iloc) * 1000.d0
+                     layer_density = swe(i,j) / snow_depth(i,j) * 1000.d0
                   end if
-                  snow_depth(iloc) = snow_depth(iloc) + increment(iloc)
-                  swe(iloc) = swe(iloc) + increment(iloc) * layer_density / 1000.d0
-                  swe_previous(iloc) = swe(iloc)
+                  snow_depth(i,j) = snow_depth(i,j) + increment(i,j)
+                  swe(i,j) = swe(i,j) + increment(i,j) * layer_density / 1000.d0
+                  swe_previous(i,j) = swe(i,j)
 
-                  active_snow_layers(iloc)      = 0.0
-                  snow_ice_layer(iloc,:)        = 0.0
-                  snow_liq_layer(iloc,:)        = 0.0
-                  temperature_snow(iloc,:)      = 0.0
-                  snow_soil_interface(iloc,1:3) = 0.0
+                  active_snow_layers(i,j)      = 0.0
+                  snow_ice_layer(i,:,j)        = 0.0
+                  snow_liq_layer(i,:,j)        = 0.0
+                  temperature_snow(i,:,j)      = 0.0
+                  snow_soil_interface(i,1:3,j) = 0.0
 
-                  if(snow_depth(iloc) > 25.0) then  ! snow depth is > 25mm so put in a layer
+                  if(snow_depth(i,j) > 25.0) then  ! snow depth is > 25mm so put in a layer
                      pathway = 5
-                     active_snow_layers(iloc) = -1.0
-                     snow_ice_layer(iloc,3)   = swe(iloc)
-                     temperature_snow(iloc,3) = temperature_soil(iloc)
-                     do ilayer = 3, 7
-                        snow_soil_interface(iloc,ilayer) = snow_soil_interface(iloc,ilayer) - snow_depth(iloc)/1000.d0
+                     active_snow_layers(i,j) = -1.0
+                     snow_ice_layer(i,3,j)   = swe(i,j)
+                     temperature_snow(i,3,j) = temperature_soil(i,j)
+                     do zlayer = 3, 7
+                        snow_soil_interface(i,zlayer,j) = snow_soil_interface(i,zlayer,j) - snow_depth(i,j)/1000.d0
                      end do
                   end if
 
-               elseif(increment(iloc) < 0.0) then  ! remove snow in zero-layer mode
+               elseif(increment(i,j) < 0.0) then  ! remove snow in zero-layer mode
 
                   pathway = 6
 
-                  layer_density = swe(iloc) / snow_depth(iloc) * 1000.d0
-                  snow_depth(iloc) = snow_depth(iloc) + increment(iloc)
-                  swe(iloc) = swe(iloc) + increment(iloc) * layer_density / 1000.d0
-                  swe_previous(iloc) = swe(iloc)
+                  layer_density = swe(i,j) / snow_depth(i,j) * 1000.d0
+                  snow_depth(i,j) = snow_depth(i,j) + increment(i,j)
+                  swe(i,j) = swe(i,j) + increment(i,j) * layer_density / 1000.d0
+                  swe_previous(i,j) = swe(i,j)
 
-                  active_snow_layers(iloc)      = 0.0
-                  snow_ice_layer(iloc,:)        = 0.0
-                  snow_liq_layer(iloc,:)        = 0.0
-                  temperature_snow(iloc,:)      = 0.0
-                  snow_soil_interface(iloc,1:3) = 0.0
+                  active_snow_layers(i,j)      = 0.0
+                  snow_ice_layer(i,:,j)        = 0.0
+                  snow_liq_layer(i,:,j)        = 0.0
+                  temperature_snow(i,:,j)      = 0.0
+                  snow_soil_interface(i,1:3,j) = 0.0
 
                end if  ! increment
 
@@ -195,34 +201,34 @@ contains
 
          ! do some gross checks
 
-         if(abs(snow_soil_interface(iloc,7) - snow_soil_interface(iloc,3) + 2.d0) > 0.0000001) then
+         if(abs(snow_soil_interface(i,7,j) - snow_soil_interface(i,3,j) + 2.d0) > 0.0000001) then
             print*, "Depth of soil not 2m"
             print*, pathway
-            print*, snow_soil_interface(iloc,7), snow_soil_interface(iloc,3)
+            print*, snow_soil_interface(i,7,j), snow_soil_interface(i,3,j)
             !      stop
          end if
 
-         if(active_snow_layers(iloc) < 0.0 .and. abs(snow_depth(iloc) + 1000.d0*snow_soil_interface(iloc,3)) > 0.0000001) then
+         if(active_snow_layers(i,j) < 0.0 .and. abs(snow_depth(i,j) + 1000.d0*snow_soil_interface(i,3,j)) > 0.0000001) then
             print*, "snow_depth and snow_soil_interface inconsistent"
             print*, pathway
-            print*, active_snow_layers(iloc), snow_depth(iloc), snow_soil_interface(iloc,3)
+            print*, active_snow_layers(i,j), snow_depth(i,j), snow_soil_interface(i,3,j)
             !      stop
          end if
 
-         if( (abs(anal_snow_depth - snow_depth(iloc))   > 0.0000001) .and. (anal_snow_depth > 0.0001) ) then
+         if( (abs(anal_snow_depth - snow_depth(i,j))   > 0.0000001) .and. (anal_snow_depth > 0.0001) ) then
             print*, "snow increment and updated model snow inconsistent"
             print*, pathway
-            print*, anal_snow_depth, snow_depth(iloc)
+            print*, anal_snow_depth, snow_depth(i,j)
             !      stop
          end if
 
-         if(snow_depth(iloc) < 0.0 .or. snow_soil_interface(iloc,3) > 0.0 ) then
+         if(snow_depth(i,j) < 0.0 .or. snow_soil_interface(i,3,j) > 0.0 ) then
             print*, "snow increment and updated model snow inconsistent"
             print*, pathway
-            print*, snow_depth(iloc), snow_soil_interface(iloc,3)
+            print*, snow_depth(i,j), snow_soil_interface(i,3,j)
             !      stop
          end if
-
+      end do
       end do
 
     end associate

@@ -6,76 +6,120 @@ program jedi_snow_incr
 
   type(jedi_type) :: jedi_state
   integer :: we_res, sn_res, len_land_vec
-  character(len=8) :: date_str
-  character(len=2) :: hour_str
   ! index to map between tile and vector space
   integer, allocatable :: tile2vector(:,:)
   double precision, allocatable :: increment(:,:)
+  integer :: restart_file, increment_file
   integer :: ierr, nprocs, myrank, lunit, ncid
+  integer :: snow_layers, sosn_layers !sosn=soil+snow layers
   logical :: file_exists
 
-  namelist /jedi_snow/ date_str, hour_str, we_res ,sn_res
+  ! namelist /jedi_snow/ date_str, hour_str, we_res ,sn_res
 
   call MPI_Init(ierr)
   call MPI_Comm_size(MPI_COMM_WORLD, nprocs, ierr)
   call MPI_Comm_rank(MPI_COMM_WORLD, myrank, ierr)
 
-  print*
-  print*,"starting apply_incr_jedi_snow program on rank ", myrank
-
-  ! READ NAMELIST
-  inquire (file='apply_incr_nml', exist=file_exists)
-  if (.not. file_exists) then
-     write (6, *) 'ERROR: apply_incr_nml does not exist'
-     call MPI_Abort(MPI_COMM_WORLD, 10, ierr)
-  end if
-
-  open (action='read', file='apply_incr_nml', iostat=ierr, newunit=lunit)
-  read (nml=jedi_snow, iostat=ierr, unit=lunit)
-
+  call open_data_files(restart_file, increment_file, we_res, sn_res)
 
   ! GET MAPPING INDEX (see subroutine comments re: source of land/sea mask)
   ! call get_fv3_mapping(myrank, date_str, hour_str, res, len_land_vec, tile2vector)
 
   ! SET-UP THE JEDI STATE AND INCREMENT
+  snow_layers = 3
+  sosn_layers = 7
   allocate(jedi_state%swe(we_res, sn_res))
+  allocate(jedi_state%snow_depth         (we_res, sn_res))
+  allocate(jedi_state%active_snow_layers (we_res, sn_res))
+  allocate(jedi_state%swe_previous       (we_res, sn_res))
+  allocate(jedi_state%snow_soil_interface(we_res, sosn_layers, sn_res))
+  allocate(jedi_state%temperature_snow   (we_res, snow_layers, sn_res))
+  allocate(jedi_state%snow_ice_layer     (we_res, snow_layers, sn_res))
+  allocate(jedi_state%snow_liq_layer     (we_res, snow_layers, sn_res))
+  allocate(jedi_state%temperature_soil   (we_res, sn_res))
   allocate(increment(we_res, sn_res))
-  ! allocate(jedi_state%snow_depth         (len_land_vec))
-  ! allocate(jedi_state%active_snow_layers (len_land_vec))
-  ! allocate(jedi_state%swe_previous       (len_land_vec))
-  ! allocate(jedi_state%snow_soil_interface(len_land_vec,7))
-  ! allocate(jedi_state%temperature_snow   (len_land_vec,3))
-  ! allocate(jedi_state%snow_ice_layer     (len_land_vec,3))
-  ! allocate(jedi_state%snow_liq_layer     (len_land_vec,3))
-  ! allocate(jedi_state%temperature_soil   (len_land_vec))
-  ! allocate(increment   (len_land_vec))
 
-  ! READ RESTART FILE
-  call read_wrf_hydro_restart(myrank, date_str, hour_str, we_res, &
-       sn_res, ncid, jedi_state )
-
-  ! READ SNOW DEPTH INCREMENT
-  call read_wrf_hydro_increment(myrank, date_str, hour_str, we_res, &
-       sn_res, increment)
+  call read_wrf_hydro_restart(restart_file, we_res, sn_res, jedi_state )
+  call read_wrf_hydro_increment(increment_file, we_res, sn_res, increment)
 
   ! ADJUST THE RESTART
   print *, "WARNING :: ADD UPDATEALLLAYERS BACK IN!!"
   ! call updateAllLayers(len_land_vec, increment, jedi_state)
+  ! call updateAllLayers(we_res, sn_res, increment, jedi_state)
 
   ! WRITE OUT ADJUSTED RESTART
   print *, "WARNING :: ADD AND FIND WRITE_WRF_HYDRO_RESTART BACK IN!!"
   ! call write_wrf_hydro_restart(jedi_state, we_res, sn_res, ncid)!, len_land_vec, &
        ! tile2vector)
 
-
   ! CLOSE RESTART FILE
-  print*
-  print*,"closing restart, apply_incr_jedi_snow program on rank ", myrank
-  ierr = nf90_close(ncid)
+  ierr = nf90_close(restart_file)
+  call netcdf_err(ierr, 'closing restart file')
 
   call MPI_Finalize(ierr)
 
 contains
+
+  subroutine open_data_files( restart_file, increment_file, we_res, sn_res )
+    implicit none
+    integer, intent(out) :: restart_file, increment_file, we_res, sn_res
+    integer :: restart_we, restart_sn, incr_we, incr_sn
+    integer :: ierr, mpierr
+
+    call open_command_line_file(restart_file, 1)
+    call open_command_line_file(increment_file, 2)
+
+    call get_dimensions(restart_file, restart_we, restart_sn)
+    call get_dimensions(increment_file, incr_we, incr_sn)
+
+    if ( restart_we /= incr_we .or. restart_sn /= incr_sn) then
+       print*, 'fatal error: dimensions for restart and increment file do not &
+            &match'
+       call MPI_Abort(MPI_COMM_WORLD, ierr, mpierr)
+    endif
+    we_res = restart_we
+    sn_res = restart_sn
+  end subroutine open_data_files
+
+  subroutine open_command_line_file(f, pos)
+    integer, intent(out) :: f
+    integer, intent(in) :: pos
+    character(len=100) :: file
+    character(len=10) :: file_type
+    logical :: file_exists
+    integer :: ierr
+    if (pos == 1) then
+       file_type = "restart"
+    else if (pos == 2) then
+       file_type = "increment"
+    end if
+
+    call get_command_argument(pos,file)
+    inquire(file=trim(file), exist=file_exists)
+    if (.not. file_exists) then
+       print *, trim(file), 'does not exist, exiting'
+       call MPI_Abort(MPI_COMM_WORLD, 10, ierr)
+    endif
+    print *, 'opening ', file_type, 'file ', trim(file)
+    ierr=nf90_open(trim(file),nf90_write,f)
+    call netcdf_err(ierr, 'opening file: '//trim(file) )
+  end subroutine open_command_line_file
+
+  subroutine get_dimensions(f, we_res, sn_res)
+    integer, intent(in) :: f
+    integer, intent(out) :: we_res, sn_res
+    integer :: id_dim
+
+    ierr=nf90_inq_dimid(f, 'west_east', id_dim)
+    call netcdf_err(ierr, 'reading west_east' )
+    ierr=nf90_inquire_dimension(f,id_dim,len=we_res)
+    call netcdf_err(ierr, 'reading west_east' )
+    ierr=nf90_inq_dimid(f, 'south_north', id_dim)
+    call netcdf_err(ierr, 'reading south_north' )
+    ierr=nf90_inquire_dimension(f,id_dim,len=sn_res)
+    call netcdf_err(ierr, 'reading south_north' )
+  end subroutine get_dimensions
+
 
   !--------------------------------------------------------------
   ! if at netcdf call returns an error, print out a message
@@ -182,73 +226,23 @@ contains
 
 
   !--------------------------------------------------------------
-  ! open fv3 restart, and read in required variables
+  ! open WRF-Hydro restart, and read in required variables
   ! file is opened as read/write and remains open
   !--------------------------------------------------------------
   ! subroutine read_wrf_hydro_restart(myrank, date_str, hour_str, we_res, sn_res, ncid, &
   !      len_land_vec,tile2vector, jedi_state)
-  subroutine read_wrf_hydro_restart(myrank, date_str, hour_str, we_res, &
-       sn_res, ncid, jedi_state)
+  subroutine read_wrf_hydro_restart(f, we_res, sn_res, jedi_state)
     use mpi
     implicit none
-
-    integer, intent(in) :: myrank, we_res, sn_res !, len_land_vec
-    character(len=8), intent(in) :: date_str
-    character(len=2), intent(in) :: hour_str
-    ! integer, intent(in) :: tile2vector(len_land_vec,2)
-
-    integer, intent(out) :: ncid
+    integer, intent(in) :: f, we_res, sn_res
     type(jedi_type), intent(inout)  :: jedi_state
-
-    character(len=100) :: restart_file
-    character(len=1) :: rankch
     logical :: file_exists
     integer :: ierr, mpierr, id_dim, fwe_res, fsn_res
     integer :: nn
 
-    ! OPEN FILE
-    write(rankch, '(i1.1)') (myrank+1)
-    ! restart_file = &
-    ! date_str//"."//hour_str//"0000.sfc_data.tile"//rankch//".nc"
-    restart_file = "RESTART."//date_str//hour_str//"_DOMAIN1"
-    ! print *, "RESTART_FILE=", RESTART_FILE
-
-    inquire(file=trim(restart_file), exist=file_exists)
-
-    if (.not. file_exists) then
-       print *, 'restart_file does not exist, ', &
-            trim(restart_file) , ' exiting'
-       call MPI_Abort(MPI_COMM_WORLD, 10, mpierr)
-    endif
-
-    write (6, *) 'opening ', trim(restart_file)
-
-    ierr=nf90_open(trim(restart_file),nf90_write,ncid)
-    call netcdf_err(ierr, 'opening file: '//trim(restart_file) )
-
-    ! CHECK DIMENSIONS
-    ! ierr=nf90_inq_dimid(ncid, 'xaxis_1', id_dim)
-    ! call netcdf_err(ierr, 'reading xaxis_1' )
-    ! ierr=nf90_inquire_dimension(ncid,id_dim,len=fres)
-    ! call netcdf_err(ierr, 'reading xaxis_1' )
-    ierr=nf90_inq_dimid(ncid, 'west_east', id_dim)
-    call netcdf_err(ierr, 'reading west_east' )
-    ierr=nf90_inquire_dimension(ncid,id_dim,len=fwe_res)
-    call netcdf_err(ierr, 'reading west_east' )
-
-    ierr=nf90_inq_dimid(ncid, 'south_north', id_dim)
-    call netcdf_err(ierr, 'reading south_north' )
-    ierr=nf90_inquire_dimension(ncid,id_dim,len=fsn_res)
-    call netcdf_err(ierr, 'reading south_north' )
-
-    if ( fwe_res /= we_res .or. fsn_res /= sn_res) then
-       print*,'fatal error: dimensions wrong.'
-       call MPI_Abort(MPI_COMM_WORLD, ierr, mpierr)
-    endif
-
 
     ! read swe (file name: sheleg, vert dim 1)
-    call read_nc_var2D(ncid, we_res, sn_res, 0, &
+    call read_nc_var2D(f, we_res, sn_res, 0, &
          'SNEQV     ', jedi_state%swe)
 
     ! ! read swe (file name: sheleg, vert dim 1)
@@ -293,75 +287,21 @@ contains
   !  read in snow depth increment from jedi increment file
   !  file format is same as restart file
   !--------------------------------------------------------------
-  subroutine read_wrf_hydro_increment(myrank, date_str, hour_str, we_res, &
-       sn_res, increment)
+  subroutine read_wrf_hydro_increment(f, we_res, sn_res, increment)
     use mpi
     implicit none
-
-    integer, intent(in) :: myrank, we_res, sn_res
-    character(len=8), intent(in) :: date_str
-    character(len=2), intent(in) :: hour_str
-    ! integer, intent(in) :: tile2vector(len_land_vec,2)
+    integer, intent(in) :: f, we_res, sn_res
     double precision, intent(out) :: increment(we_res, sn_res)     ! snow depth increment
-
-    character(len=100) :: incr_file
-    character(len=1) :: rankch
-    logical :: file_exists
-    integer :: ierr, mpierr
-    integer :: id_dim, id_var, fwe_res, fsn_res, ncid
-    integer :: nn
-
-    ! OPEN FILE
-    write(rankch, '(i1.1)') (myrank+1)
-    ! incr_file = date_str//"."//hour_str//"0000.xainc.sfc_data.tile"//rankch//".nc"
-    incr_file = "INCREMENT."//date_str//hour_str//"_DOMAIN1"
-    print *, "WARNING :: FOR TESTING INCREMENT FILE IS ", incr_file
-
-    inquire(file=trim(incr_file), exist=file_exists)
-
-    if (.not. file_exists) then
-       print *, 'incr_file does not exist, ', &
-            trim(incr_file) , ' exiting'
-       call MPI_Abort(MPI_COMM_WORLD, 10, mpierr)
-    endif
-
-    write (6, *) 'opening ', trim(incr_file)
-
-    ierr=nf90_open(trim(incr_file),nf90_write,ncid)
-    call netcdf_err(ierr, 'opening file: '//trim(incr_file) )
-
-    ! CHECK DIMENSIONS
-    ! ierr=nf90_inq_dimid(ncid, 'xaxis_1', id_dim)
-    ! call netcdf_err(ierr, 'reading xaxis_1' )
-    ! ierr=nf90_inquire_dimension(ncid,id_dim,len=fres)
-    ! call netcdf_err(ierr, 'reading xaxis_1' )
-    ierr=nf90_inq_dimid(ncid, 'west_east', id_dim)
-    call netcdf_err(ierr, 'reading west_east' )
-    ierr=nf90_inquire_dimension(ncid,id_dim,len=fwe_res)
-    call netcdf_err(ierr, 'reading west_east' )
-
-    ierr=nf90_inq_dimid(ncid, 'south_north', id_dim)
-    call netcdf_err(ierr, 'reading south_north' )
-    ierr=nf90_inquire_dimension(ncid,id_dim,len=fsn_res)
-    call netcdf_err(ierr, 'reading south_north' )
-
-    if ( fwe_res /= we_res .or. fsn_res /= sn_res) then
-       print*,'fatal error: dimensions wrong.'
-       call MPI_Abort(MPI_COMM_WORLD, ierr, mpierr)
-    endif
+    integer :: ierr
 
     ! read snow_depth (file name: snwdph, vert dim 1)
     ! call read_nc_var2D(ncid, len_land_vec, res, tile2vector, 0, &
     !      'snwdph    ', increment)
-    call read_nc_var2D(ncid, we_res, sn_res, 0, &
-         'SNEQV     ', jedi_state%swe)
+    call read_nc_var2D(f, we_res, sn_res, 0, &
+         'SNEQV     ', increment)
 
-    ! close file
-    write (6, *) 'closing ', trim(incr_file)
-
-    ierr=nf90_close(ncid)
-    call netcdf_err(ierr, 'closing file: '//trim(incr_file) )
-
+    ierr=nf90_close(f)
+    call netcdf_err(ierr, 'closing increment file')
   end subroutine  read_wrf_hydro_increment
 
   !--------------------------------------------------------
