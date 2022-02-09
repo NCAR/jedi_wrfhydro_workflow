@@ -9,6 +9,9 @@ import yaml
 # -- todo ---
 # * read resource info using CLI
 # * make parse_arguments less brittle
+def exit(message):
+    print("Error: ", message)
+    sys.exit()
 def pprint(string):
     delim = '---'
     print(delim,'\n',string)
@@ -20,6 +23,19 @@ def cd(goto):
 def check_path(path):
     if (path[-1] != '/'):
         path += '/'
+    return path
+def check_wrf_h_path(path: str) -> str:
+    path = check_path(path)
+    if path.endswith('trunk/NDHMS/Run/'):
+        pass
+    elif path.endswith('trunk/NDHMS/'):
+        path += 'Run/'
+    elif path.endswith('trunk/'):
+        path += 'NDHMS/Run/'
+    else:
+        path += 'trunk/NDHMS/Run/'
+    if not os.path.isdir(path):
+        exit("WRF-Hydro path: " + path + " not found")
     return path
 
 
@@ -41,41 +57,66 @@ class workflow:
 
     def cycle(self):
         pprint("Starting Cycling Process")
-        print("starting at", self.start_time)
+        print(" starting at", self.start_time)
         self.ens_time = self.start_time
         while self.ens_time < self.end_time:
             self.run_jedi()
-            self.increment_restarts()
+            self.increment_restart()
             self.run_ensemble()
             self.advance_ensemble()
         print(" Ending Cycling Process")
 
+    def run_ensemble(self):
+        pprint('Running ensemble WRF-Hydro')
+        cd(self.jedi_output_dir)
+        f_name = self.experiment_file_base + \
+            self.ens_time.strftime('%H') + '.nc'
+        #     f = open(f_name, 'w')
+        #     f.close()
+        cmd = [self.wrf_h_exe, f_name]
+        self.run(cmd)
+
+    def increment_restart(self):
+        pprint('Incrementing restarts')
+        cd(self.jedi_output_dir)
+        cmd = [self.increment_exe, 'FOO', 'FOO.INC']
+        self.run(cmd)
 
     def run_jedi(self):
         pprint('Running JEDI')
         cd(self.jedi_working_dir)
-
-        print("where", pwd())
         # ARTLESS: RUN WHERE?
         cd(self.jedi_output_dir)
+        cmd = [self.jedi_exe, self.jedi_yaml]
+        self.run(cmd)
+        # sys.exittt()
+# def run_filter(run_dir: pathlib.Path,nproc: int, cmd: str,
+# ):
+#     # TODO (JLM): right now hostname is just the master node.
+#     cmd_to_run = cmd.format(
+#         **{'hostname':hostname,
+#            'nproc': nproc,
+#            'cmd': './filter'
+#            }
+#     )
+#     proc = subprocess.run(shlex.split(cmd_to_run), cwd=str(run_dir))
+#     if proc.returncode != 0:
+#         raise ValueError('Filter did not return 0')
 
-        cmd = self.jedi_exe + ' ' + self.jedi_yaml
-        print('$', cmd)
-        print("PRETENDING TO RUN IN", pwd())
-        sys.exittt()
 
-    def run_ensemble(self):
-        f_name = self.experiment_file_base + \
-            self.ens_time.strftime('%H') + '.nc'
-        f = open(f_name, 'w')
-        f.close()
+
+    # def run_ensemble(self):
+    #     f_name = self.experiment_file_base + \
+    #         self.ens_time.strftime('%H') + '.nc'
+    #     f = open(f_name, 'w')
+    #     f.close()
         # TODO: Run Ensemble
         # print('$', self.command)
         # subprocess.call([str(self.command)], shell=True)
 
     def advance_ensemble(self):
         self.ens_time += self.model_ts
-        print("advancing to", self.ens_time)
+        pprint("Advancing to " + str(self.ens_time))
 
     def get_resource_info(self):
         pprint("TODO: Obtaining resource info")
@@ -118,13 +159,21 @@ class workflow:
         f = open(self.yaml, 'r')
         self.setup = yaml.safe_load(f)
         self.read_jedi_yaml()
+        self.read_wrf_hydro_yaml()
         # self.read_yaml_dirs()
         self.read_yaml_file_names()
         self.read_yaml_time()
-        self.read_yaml_command()
+        # self.read_yaml_command() Don't need??
         # ens_size = int(config['ensemble']['size'])
         f.close()
         pprint("Read Yaml")
+
+    def read_wrf_hydro_yaml(self):
+        self.wrf_h_yaml = self.setup['experiment']['wrf_hydro']
+        self.wrf_h_build_dir = check_wrf_h_path(self.wrf_h_yaml['build_dir'])
+        self.wrf_h_exe = self.wrf_h_build_dir + self.wrf_h_yaml['exe']
+        if not os.path.isfile(self.wrf_h_exe):
+            exit("wrf_hydro.exe no found in " + self.wrf_h_build_dir)
 
     def read_jedi_yaml(self):
         self.jedi_yaml = self.setup['experiment']['jedi']['yaml']
@@ -177,8 +226,21 @@ class workflow:
         # skip_missing_obs_days = time['skip_missing_obs_days']
 
 
+    def run(self, cmd):
+        print('$', ' '.join(map(str,cmd)))
+        # out = subprocess.run(cmd,  # capture_output=True
+        #                      stdout=subprocess.PIPE,
+        #                      stderr=subprocess.STDOUT)
+        # print("| ", out.stdout)
+
     def start(self):
         pprint("Starting Workflowpy")
+        self.increment_exe = os.getenv('JEDI_INCREMENT')
+        self.increment_exe = os.getenv('FOOBAR')
+        self.increment_exe = \
+            '/glade/u/home/soren/src/jedi/incrementJedi/bin/jedi_increment'
+        print("increment exe", self.increment_exe)
+        print("FIX AT SOME POINT")
 
     def end(self):
         pprint("Exiting Workflowpy")
