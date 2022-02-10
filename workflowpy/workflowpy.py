@@ -48,7 +48,7 @@ def check_wrf_h_path(path: str) -> str:
 
 
 class filename:
-    def __init__(self, fullpath, dt):
+    def __init__(self, fullpath, dt, dt_format='%Y%m%d%H'):
         self.fullpath = fullpath
         self.filename = os.path.basename(fullpath)
         self.previousfilename = ''
@@ -59,14 +59,15 @@ class filename:
         self.fileend = self.filename[s.end():]
         date_s = self.filename[s.start():s.end()]
         self.incrementfilename = self.filename + '.increment'
-        self.date = datetime.datetime.strptime(date_s,'%Y%m%d%H')
+        self.date = datetime.datetime.strptime(date_s, dt_format)
+        self.dt_format = dt_format
         self.dt = dt
 
     def advance(self):
         self.previousfilename = self.filename
         self.date += self.dt
         self.filename = self.filebase + \
-            self.date.strftime('%Y%m%d%H') + \
+            self.date.strftime(self.dt_format) + \
             self.fileend
         self.fullpath = self.dirname + self.filename
         self.incrementfilename = self.filename + '.increment'
@@ -118,15 +119,11 @@ class workflow:
 
     def run_ensemble(self):
         pprint('Running ensemble WRF-Hydro')
-        # cd(self.jedi_output_dir)
-        cd(self.workflow_work_dir)
-        f_name = self.experiment_file_base + \
-            self.ens_time.strftime('%H') + '.nc'
-        #     f = open(f_name, 'w')
-        #     f.close()
-        cmd = [self.wrf_h_exe, f_name]
+        cd(self.workflow_work_dir) # cd(self.jedi_output_dir)
+        # f_name = self.experiment_file_base + \
+        #     self.ens_time.strftime('%H') + '.nc'
+        cmd = [self.wrf_h_exe] #, f_name]
         self.run(cmd)
-        # shutil.copy(self.lsm_filename, self.input_lsm_f_name +'.increment')
 
 
     def increment_restart(self):
@@ -136,6 +133,7 @@ class workflow:
                self.lsm_file.filename,
                self.lsm_file.incrementfilename]
         self.run(cmd)
+
 
     def run_filter(self):
         pprint('Running JEDI filter')
@@ -170,6 +168,7 @@ class workflow:
         pprint("Advancing to " + str(self.ens_time))
         self.lsm_file.advance()
         shutil.copy(self.lsm_file.previousfilename, self.lsm_file.filename)
+        print("todo: update yamls for next timestep")
         # self.jedi_yaml = self.setup['experiment']['jedi']['yaml']
         # f = open(self.jedi_yaml, 'r')
         # self.jedi_setup = yaml.safe_load(f)
