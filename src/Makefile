@@ -17,7 +17,5 @@ build: $(OBJS)
 
 jedi_snow_incr.o: jedi_disag_mod.o input_var_names.o
 
-install:
-	-cp -p $(CMD) ../exec/.
 clean:
-	-rm -f $(OBJS) *.mod $(EXE) *~
+	rm -f $(OBJS) *.mod $(EXE) *~
