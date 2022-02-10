@@ -2,11 +2,13 @@ FC=mpif90
 SRC=$(wildcard *.f90)
 OBJS=$(patsubst %.f90, %.o, $(SRC))
 EXE=jedi_increment
-FFLAGS=-I$(NETCDF_INCLUDES) -L$(NETCDF_LIBRARIES) -lnetcdff -O3
-
+ifdef NETCDF
+	netcdf=	-I$(NETCDF)/include -L$(NETCDF)/lib -lnetcdff
+endif
+FFLAGS=-O3 $(netcdf)
 
 %.o: %.f90
-	$(FC) -c $(FFLAGS) $< #-o $@
+	$(FC) -c $(FFLAGS) $<
 
 all: build
 
