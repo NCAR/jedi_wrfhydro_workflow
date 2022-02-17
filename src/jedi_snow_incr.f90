@@ -44,9 +44,15 @@ program jedi_snow_incr
   call read_wrf_hydro_restart(restart_file, we_res, sn_res, jedi_state )
   call read_wrf_hydro_increment(increment_file, we_res, sn_res, increment)
 
+  jedi_state%snow_depth = jedi_state%snow_depth * 1000
+
+  increment = (increment * 1000) - jedi_state%snow_depth
+
   ! ADJUST THE RESTART
   print *, "Updating Data"
   call updateAllLayers(we_res, sn_res, increment, jedi_state)
+
+  jedi_state%snow_depth = jedi_state%snow_depth / 1000
 
   ! WRITE OUT ADJUSTED RESTART
   print *, "Writing WRF-Hydro Restart Data"
