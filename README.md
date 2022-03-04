@@ -13,6 +13,12 @@ A framework providing a workflow between WRF-Hydro/NWM JEDI and WRF-Hydro.
 	 - hrldas_namelists.json
      - hydro_namelists.json
 
+### Prepping YAMLs
+ - The starting time in `jedi.yaml` is propagated to JEDI and WRF-Hydro YAMLs
+during the initilization phase and while the model runs.
+ - More to be added
+
+
 ## Running
 `$ python3 jedi_workflowpy.py jedi_workflow.yaml`
 
@@ -30,6 +36,16 @@ graph TD
     G --> yes --> J([Finish])
 ```
 
-# Debugging
-If failure happens while running `wrf_hydro_py`, examine the `foo.stdout` and
-`foo.stderr` files in the member subdirectories.
+
+# Miscellaneous Information
+## YAMLs
+JEDI Workflow YAML: if the `start_wrf-h_time` and `start_jedi_time` time are
+equal, then WRF-Hydro is not run before starting the cycle, only a restart
+file is used.
+
+## Debugging
+If the program fails while running `wrf_hydro_py`, examine the `foo.stdout`
+and `foo.stderr` files in the member subdirectories.
+
+If the program fails or is stopped during the `wrf_hydro_py`, WRF-Hydro may
+need to be recompiled.
