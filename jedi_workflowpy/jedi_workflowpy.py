@@ -143,9 +143,17 @@ class Workflow:
         cd(self.workflow_work_dir)
 
         # WRF-HYDRO OUTPUT need to be updated
-        # debug removing these copies breaks it,
-        shutil.copy(self.lsm_file.previousfilename, self.lsm_file.filename)
-        shutil.copy(self.hydro_file.previousfilename, self.hydro_file.filename)
+        # debug removing these copies breaks it
+        if self.restarts_dir == None:
+            restart_dir = self.name+shorten(self.time.prev_s) + '/member_000/'
+        else:
+            restart_dir = self.restarts_dir
+
+        os.symlink(restart_dir + '/' + self.lsm_file.filename,
+                   self.lsm_file.filename)
+        os.symlink(restart_dir + '/' + self.hydro_file.filename,
+                   self.hydro_file.filename)
+        print("WARNING: COPYING RESTARTS FROM", restart_dir)
 
 
     def jedi_obs_init(self):
@@ -315,7 +323,7 @@ class Workflow:
         self.workflow_wrf_dir = Path(self.workflow_work_dir +
                                      '/wrf_hydro_exe/')
         check_dir(self.workflow_work_dir)
-
+        self.restarts_dir = self.workflow_yaml.yaml['experiment']['init']['restarts_dir']
 
     def read_yaml_time(self):
         time = self.workflow_yaml.yaml['experiment']['time']
