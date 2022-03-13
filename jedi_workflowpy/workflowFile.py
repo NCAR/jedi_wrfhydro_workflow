@@ -98,17 +98,19 @@ class JSON_Filename(Filename):
 
 
 class Obs():
-    def __init__(self, obs, dt):
+    def __init__(self, obs_dir, obs, time):
         self.name = obs['obs space']['name']
         dt_format = '%Y-%m-%dT%H:%M:%SZ'
         for key,val in obs['obs space'].items():
             if key == 'obsdatain':
-                self.f_in = NC_Filename(val['obsfile'],
-                                        dt,
+                self.f_in = NC_Filename(obs_dir,
+                                        val['obsfile'],
+                                        time,
                                         dt_format)
             if key == 'obsdataout':
-                self.f_out = NC_Filename(val['obsfile'],
-                                         dt,
+                self.f_out = NC_Filename('.',
+                                         val['obsfile'],
+                                         time,
                                          dt_format)
 
     def advance(self):
@@ -117,10 +119,11 @@ class Obs():
 
 
 class NC_Filename(Filename):
-    def __init__(self, fullpath, dt, dt_format='%Y%m%d%H'):
-        self.fullpath = fullpath
-        self.dirname = os.path.dirname(fullpath) + '/'
+    def __init__(self, restart_dir, fullpath, time, dt_format='%Y%m%d%H'):
+        self.dirname = restart_dir + '/'
+        self.restart_dir = restart_dir + '/'
         self.filename = os.path.basename(fullpath)
+        self.fullpath = self.dirname + self.filename
         self.previousfilename = ''
         if dt_format == '%Y%m%d%H':
             reg_s = '[1-9][0-9]{3}[0-1][0-9][0-3][0-9][0-2][0-4]'
@@ -136,9 +139,10 @@ class NC_Filename(Filename):
         self.fileend = self.filename[s.end():]
         date_s = self.filename[s.start():s.end()]
         self.incrementfilename = self.filename + '.increment'
-        self.date = datetime.datetime.strptime(date_s, dt_format)
+        self.date = time.current
         self.dt_format = dt_format
-        self.dt = dt
+        self.dt = time.dt
+        self.set_date(self.date)
 
     def advance(self):
         self.previousfilename = self.filename
@@ -164,3 +168,16 @@ class NC_Filename(Filename):
         self.fullpath += postfix
         self.filename += postfix
         self.fileend += postfix
+
+    def set_date(self, date):
+        self.filename = \
+            self.filebase + \
+            date.strftime(self.dt_format) + \
+            self.fileend
+        self.fullpath = self.dirname + self.filename
+
+    def copy_from_restart_dir(self, to_dir):
+        from_path = self.restart_dir + self.filename
+        shutil.copy(from_path, to_dir)
+        self.fullpath = to_dir + '/' + self.filename
+        print('copied', from_path, 'to', self.fullpath)
