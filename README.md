@@ -27,8 +27,12 @@ during the initilization phase and while the model runs.
 
 ```mermaid
 graph TD
-    A([Initialization]) --> B([Read WRF-Hydro Restart])
-    B --> C([Apply JEDI Filter])
+    A([Initialization])
+    A --> B1([Read WRF-Hydro Restart])
+    A --> B2([Run WRF-Hydro])
+    C([Apply JEDI Filter])
+    B1 --> C
+    B2 --> C
     C --> D([Increment Restart])
     D --> F([Run WRF-Hydro, Advance Model ])
     F --> G([Model Done?])
