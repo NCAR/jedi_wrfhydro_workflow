@@ -3,42 +3,40 @@ experiment:
   workflow_work_dir: /path/to/workflow/work/dir
 
   init:
-    restarts_dir: /glade/scratch/soren/src/jedi/workflow/afox_taylor_park
+    restarts_dir: /path/to/restarts
+    obs_dir: /path/to/obs
 
   jedi:
-    build_dir: /path/to/wrf-hydro-nwm-jedi/build
-
     # --- hofx
+    exe: /path/to/wrf_hydro_nwm_jedi_hofx3d.x
     yaml: /path/to/yaml/hofx3d_taylor_park.yaml
-    exe: wrf_hydro_nwm_jedi_hofx3d.x
     increment: False
 
     # --- 3dvar: warning, not currenlty implemented
+    # exe: /path/to/wrf_hydro_nwm_jedi_var.x
     # yaml: /path/to/yaml/3dvar_owp.yaml
     # increment: True
-    # exe: wrf_hydro_nwm_jedi_var.x
 
   increment:
     exe: /glade/u/home/soren/src/jedi/add_jedi_increment/bin/jedi_increment
 
   wrf_hydro:
-    build_dir: /path/to/wrf_hydro/build
-    domain_dir: /path/to/wrf_hydro/domain
     exe: wrf_hydro.exe
     # exe: mpirun -np 32 wrf_hydro.exe
+    build_dir: /path/to/wrf_hydro/build
+    domain_dir: /path/to/wrf_hydro/domain
+    hydro_json: /path/to/hydro_namelists.json
+    hrldas_json: /path/to/hrldas_namelists.json
     version: 'v5.2.0'
     config: 'nwm_long_range'
 
+  # WRF-Hydro only is run in a precycle if start_wrf-h_time is
+  # less than start_jedi_time
   time:
+    # start_wrf-h_time: 2019-02-27_01:00:00 # precycl would be ran
     start_wrf-h_time: 2019-03-01_01:00:00
     start_jedi_time:  2019-03-01_01:00:00
     end_time:         2019-03-03_01:00:00
     assim_window:
       hours: 24
     advance_model_hours: 24
-
-    # --- currently only starting with WRF-Hydro Restarts is implemented
-    #     in the future the following will be supported
-    # start_wrf-h_time: 2019-02-28_01:00:00
-    # start_jedi_time:  2019-03-01_01:00:00
-    # end_time:         2019-03-03_01:00:00
