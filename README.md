@@ -34,10 +34,12 @@ graph TD
     B1 --> C
     B2 --> C
     C --> D([Increment Restart])
-    D --> F([Run WRF-Hydro, Advance Model ])
-    F --> G([Model Done?])
-    G --> no --> C
-    G --> yes --> J([Finish])
+    D --> F([Run WRF-Hydro<br/> Simulation])
+    F --> G([Advance Model, <br/> Prep Forecast Files ])
+    G -.-> G1([Outside Tool<br/> Able To Run Forecast])
+    G --> G2([Model Done?])
+    H --> yes --> J([Finish])
+    H --> no --> C
 ```
 
 
