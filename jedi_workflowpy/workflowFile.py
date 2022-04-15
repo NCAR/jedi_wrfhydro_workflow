@@ -4,7 +4,9 @@ import os
 import shutil
 import sys
 import re
+from numpy import dtype
 import yaml
+
 
 def check_path(path):
     if (path[-1] != '/'):
@@ -140,6 +142,7 @@ class NC_Filename(Filename):
         date_s = self.filename[s.start():s.end()]
         self.incrementfilename = self.filename + '.increment'
         self.date = time.current
+        self.yesterday = time.prev
         self.dt_format = dt_format
         self.dt = time.dt
         self.set_date(self.date)
@@ -181,3 +184,11 @@ class NC_Filename(Filename):
         shutil.copy(from_path, to_dir)
         self.fullpath = to_dir + '/' + self.filename
         print('copied', from_path, 'to', self.fullpath)
+    
+    def copy_from_modelrun_dir(self, to_dir):
+        yesterday = self.date - self.dt
+        from_path = '/glade/u/home/afox/work/jedi/workflow/expts/colorado_test/foo' + yesterday.strftime('%Y%m%d%H') + '/member_000/' + self.filename
+        shutil.copy(from_path, to_dir)
+        self.fullpath = to_dir + '/' + self.filename
+        print('copied', from_path, 'to', self.fullpath)
+

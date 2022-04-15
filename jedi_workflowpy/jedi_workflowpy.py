@@ -84,7 +84,8 @@ class Workflow:
             exe_cmd = self.wrf_h_exe,
             restart_dir = self.workflow_work_dir,
             restart_file_time = self.time.current_s,
-            restart = True
+            restart = True,
+            restart_freq_hr=24
         )
 
         current_work_dir = self.name+shorten(self.time.current_s)
@@ -108,8 +109,8 @@ class Workflow:
             self.time.advance()
             self.lsm_file.advance()
             self.hydro_file.advance()
-            self.lsm_file.copy_from_restart_dir(self.workflow_work_dir)
-            self.hydro_file.copy_from_restart_dir(self.workflow_work_dir)
+            self.lsm_file.copy_from_modelrun_dir(self.workflow_work_dir)
+            self.hydro_file.copy_from_modelrun_dir(self.workflow_work_dir)
 
 
         self.jedi_yaml.put_key('filename_lsm', self.lsm_file.fullpath)
@@ -178,6 +179,7 @@ class Workflow:
         self.jedi_yaml.put_key('filename_lsm', self.lsm_file.fullpath)
         self.jedi_yaml.put_key('filename_hydro', self.hydro_file.fullpath)
         self.wrf_h_hydro_json.put_key('restart_file', self.hydro_file.fullpath)
+        self.wrf_h_hrldas_json.put_key('restart_filename_requested', self.lsm_file.fullpath)
         self.wrf_h_hrldas_json.put_time(self.time.current)
 
         self.jedi_obs_init()
@@ -195,7 +197,10 @@ class Workflow:
             source_dir = self.wrf_h_build_dir,
             compiler = 'gfort',
             compile_options={'WRF_HYDRO_NUDGING': 0},
-            model_config=config
+            model_config=config,
+            hydro_namelist_config_file  = '/glade/u/home/afox/work/jedi/workflow/CO_state_domain/hydro_namelists.json',
+            hrldas_namelist_config_file = '/glade/u/home/afox/work/jedi/workflow/CO_state_domain/hrldas_namelists.json',
+            compile_options_config_file = '/glade/u/home/afox/work/jedi/workflow/CO_state_domain/compile_options.json'
         )
         if (self.workflow_wrf_dir.exists()):
             with open(self.workflow_wrf_dir / 'WrfHydroModel.pkl', 'rb') as f:
