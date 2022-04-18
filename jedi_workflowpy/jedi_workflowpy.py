@@ -293,13 +293,13 @@ class Workflow:
         self.yaml_read_jedi_key()
         self.yaml_read_increment_exe_key()
         self.yaml_read_wrf_hydro_key()
-        self.yaml_read_ensemble_key()
+        # self.yaml_read_ensemble_key()
 
 
     # read ensemble key
     def yaml_read_ensemble_key(self):
         ensemble = self.workflow_yaml.yaml['experiment']['ensemble']
-        # self.ensemble_n_members = ensemble['num_members']
+        self.ensemble_n_members = ensemble['num_members']
         self.ensemble_method = ensemble['method']
         self.LETKF_OI = LETKF_OI(ensemble) if ensemble['method'] == 'LETKF_OI' else None
 
@@ -387,6 +387,7 @@ class Workflow:
         # TODO READ/GATHER/SETUP?
         pprint("Initializing Workflowpy", 1)
         self.parse_arguments(args)
+        self.ensemble_n_members = 1
         self.get_resource_info() # todo: one node hard coded
         self.read_yamls()
         self.setup_experiment()  # need to create structure
