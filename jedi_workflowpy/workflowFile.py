@@ -125,6 +125,7 @@ class NC_Filename(Filename):
         self.filename = os.path.basename(fullpath)
         self.fullpath = self.dirname + self.filename
         self.previousfilename = ''
+        self.ens_base_dir = ''
         if dt_format == '%Y%m%d%H':
             reg_s = '[1-9][0-9]{3}[0-1][0-9][0-3][0-9][0-2][0-4]'
         elif dt_format == '%Y-%m-%d_%H:%M':
@@ -153,6 +154,9 @@ class NC_Filename(Filename):
             self.fileend
         self.fullpath = self.dirname + self.filename
         self.incrementfilename = self.filename + '.increment'
+        if self.ens_base_dir != "":
+            self.ens_member_dir = self.ens_base_dir + \
+                self.date_stringify() + f"/member_{self.mem_num:03}"
 
     def date_stringify(self):
         return self.date.strftime(self.dt_format)
@@ -178,6 +182,22 @@ class NC_Filename(Filename):
 
     def copy_from_restart_dir(self, to_dir):
         from_path = self.restart_dir + self.filename
+        shutil.copy(from_path, to_dir)
+        self.fullpath = to_dir + '/' + self.filename
+        print('copied', from_path, 'to', self.fullpath)
+
+    def set_ens_member_dir(self, base_dir, name, mem_num=1):
+        self.mem_num = mem_num
+        self.ens_base_dir = base_dir + '/' + name
+        self.ens_member_dir = base_dir + '/' + name + \
+            self.date_stringify() + f"/member_{mem_num-1:03}"
+
+    def copy_from_ens_member_dir(self, to_dir):
+        from_path = self.ens_member_dir + '/' + \
+            self.filebase + \
+            (self.date + self.dt).strftime(self.dt_format) + \
+            self.fileend
+        print('DEBUG: ATTEMPT COPY:', from_path, 'to', self.fullpath)
         shutil.copy(from_path, to_dir)
         self.fullpath = to_dir + '/' + self.filename
         print('copied', from_path, 'to', self.fullpath)
