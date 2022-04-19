@@ -25,6 +25,8 @@ experiment:
     # exe: mpirun -np 32 wrf_hydro.exe
     build_dir: /path/to/wrf_hydro/build
     domain_dir: /path/to/wrf_hydro/domain
+    hydro_patches_json: /path/to/hydro_namelist_patches.json
+    hrldas_patches_json: /path/to/hrldas_namelist_patches.json
     hydro_json: /path/to/hydro_namelists.json
     hrldas_json: /path/to/hrldas_namelists.json
     version: 'v5.2.0'

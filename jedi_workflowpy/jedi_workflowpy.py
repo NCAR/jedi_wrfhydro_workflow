@@ -148,13 +148,13 @@ class Workflow:
             self.lsm_file.copy_from_ens_member_dir(self.workflow_work_dir)
             self.hydro_file.copy_from_ens_member_dir(self.workflow_work_dir)
             self.time.advance()
-            self.lsm_file.advance()
-            self.hydro_file.advance()
-
+            self.lsm_file.advance_wwd(self.workflow_work_dir)
+            self.hydro_file.advance_wwd(self.workflow_work_dir)
+        print("DEBUG3:::lsm_file_fullpath", self.lsm_file.fullpath)
         self.jedi_yaml.put_key('filename_lsm', self.lsm_file.fullpath)
         self.jedi_yaml.put_key('filename_hydro', self.hydro_file.fullpath)
-        self.wrf_h_hydro_json.put_key('restart_file', self.hydro_file.fullpath)
-        self.wrf_h_hrldas_json.put_time(self.time.current)
+        self.wrf_h_hydro_patches_json.put_key('restart_file', self.hydro_file.fullpath)
+        self.wrf_h_hrldas_patches_json.put_time(self.time.current)
         # update obs times
         if not precyclerun:
             self.advance_obs_and_update_jedi_yaml()
@@ -164,13 +164,13 @@ class Workflow:
                                str(self.jedi_obs[0].f_in.date_stringify()))
 
         self.jedi_yaml.write()
-        self.wrf_h_hrldas_json.write()
-        self.wrf_h_hydro_json.write()
+        self.wrf_h_hrldas_patches_json.write()
+        self.wrf_h_hydro_patches_json.write()
 
         print('filename_lsm =', self.lsm_file.fullpath)
         print('filename_hydro =', self.hydro_file.fullpath)
-        print('hrldas_namelist.json =', self.wrf_h_hrldas_json.fullpath)
-        print('hydro_namelist.json =', self.wrf_h_hydro_json.fullpath)
+        print('hrldas_namelist.json =', self.wrf_h_hrldas_patches_json.fullpath)
+        print('hydro_namelist.json =', self.wrf_h_hydro_patches_json.fullpath)
         if not precyclerun:
             for obs in self.jedi_obs:
                 print('jedi_obs_in =', obs.f_in.fullpath)
@@ -223,16 +223,16 @@ class Workflow:
         # update jedi yaml with copied files
         self.jedi_yaml.put_key('filename_lsm', self.lsm_file.fullpath)
         self.jedi_yaml.put_key('filename_hydro', self.hydro_file.fullpath)
-        self.wrf_h_hydro_json.put_key('restart_file', self.hydro_file.fullpath)
-        self.wrf_h_hrldas_json.put_key('restart_filename_requested',
+        self.wrf_h_hydro_patches_json.put_key('restart_file', self.hydro_file.fullpath)
+        self.wrf_h_hrldas_patches_json.put_key('restart_filename_requested',
                                        self.lsm_file.fullpath)
-        self.wrf_h_hrldas_json.put_time(self.time.current)
+        self.wrf_h_hrldas_patches_json.put_time(self.time.current)
 
         self.ensemble_n_members = 1
         self.jedi_obs_init()
         self.jedi_yaml.write()
-        self.wrf_h_hydro_json.write()
-        self.wrf_h_hrldas_json.write()
+        self.wrf_h_hydro_patches_json.write()
+        self.wrf_h_hrldas_patches_json.write()
         self.setup_wrfhydropy()
 
 
@@ -255,15 +255,15 @@ class Workflow:
                 model = pickle.load(f)
         else:
             model.compile(str(self.workflow_wrf_dir))
-        print('Using', self.wrf_h_hydro_json.fullpath)
-        print('Using', self.wrf_h_hrldas_json.fullpath)
+        print('Using', self.wrf_h_hydro_patches_json.fullpath)
+        print('Using', self.wrf_h_hrldas_patches_json.fullpath)
         print('Model:')
         domain = \
             wrfhydropy.Domain(self.wrf_h_domain_dir,
                               config,
                               self.wrf_h_version,
-                              self.wrf_h_hydro_json.fullpath,
-                              self.wrf_h_hrldas_json.fullpath)
+                              self.wrf_h_hydro_patches_json.fullpath,
+                              self.wrf_h_hrldas_patches_json.fullpath)
         simulation = wrfhydropy.Simulation()
         simulation.add(model)
         simulation.add(domain)
@@ -307,12 +307,16 @@ class Workflow:
     # create yaml objects and move them
     def collect_yamls_and_jsons(self):
         wrf_h_yaml = self.workflow_yaml.yaml['experiment']['wrf_hydro']
+        self.wrf_h_hrldas_patches_json = wf.JSON_Filename(wrf_h_yaml['hrldas_patches_json'])
+        self.wrf_h_hydro_patches_json = wf.JSON_Filename(wrf_h_yaml['hydro_patches_json'])
         self.wrf_h_hrldas_json = wf.JSON_Filename(wrf_h_yaml['hrldas_json'])
-        self.wrf_h_hydro_json = wf.JSON_Filename(wrf_h_yaml['hydro_json'])
+        self.wrf_h_hydro_json = wf.JSON_Filename(wrf_h_yaml['hydro_json'])        
         self.jedi_yaml = wf.YAML_Filename(
             self.workflow_yaml.yaml['experiment']['jedi']['yaml'])
+        self.wrf_h_hrldas_patches_json.copy_to(self.workflow_work_dir)
+        self.wrf_h_hydro_patches_json.copy_to(self.workflow_work_dir)
         self.wrf_h_hrldas_json.copy_to(self.workflow_work_dir)
-        self.wrf_h_hydro_json.copy_to(self.workflow_work_dir)
+        self.wrf_h_hydro_json.copy_to(self.workflow_work_dir)        
         self.jedi_yaml.copy_to(self.workflow_work_dir)
 
 
@@ -325,7 +329,7 @@ class Workflow:
         self.wrf_h_exe = wrf_h_run_dir + wrf_h_yaml['exe']
         self.wrf_h_domain_dir = check_path(wrf_h_yaml['domain_dir'])
         if not os.path.isfile(self.wrf_h_exe):
-            exit("wrf_hydro.exe no found in " + wrf_h_build_dir)
+            exit("wrf_hydro.exe no found at " + self.wrf_h_exe)
         self.wrf_h_version = wrf_h_yaml['version']
         self.wrf_h_config = wrf_h_yaml['config']
 
@@ -402,8 +406,8 @@ class Workflow:
         print("Running WRF-Hydro before cycle phase:", self.time.pre_wrf_h)
         print('filename_lsm =', self.lsm_file.fullpath)
         print('filename_hydro =', self.hydro_file.fullpath)
-        print('hrldas_namelist.json =', self.wrf_h_hrldas_json.fullpath)
-        print('hydro_namelist.json =', self.wrf_h_hydro_json.fullpath)
+        print('hrldas_namelist.json =', self.wrf_h_hrldas_patches_json.fullpath)
+        print('hydro_namelist.json =', self.wrf_h_hydro_patches_json.fullpath)
         for obs in self.jedi_obs:
             print('jedi_obs_in =', obs.f_in.fullpath)
             print('jedi_obs_out =', obs.f_out.fullpath)

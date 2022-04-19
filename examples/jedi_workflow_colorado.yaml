@@ -1,0 +1,44 @@
+experiment:
+  name: 'foo'
+  workflow_work_dir: /glade/u/home/afox/work/jedi/workflow/expts/colorado_debug
+
+  init:
+    restarts_dir: /glade/work/afox/jedi/Jedi_experiments/input/wrf_hydro_nwm_files/colorado
+    obs_dir: /glade/work/afox/jedi/Jedi_experiments/OWP_obs/2021/202103
+
+  jedi:
+    # --- hofx
+    exe: /glade/work/afox/jedi/wrf_hydro_nwm_jedi/build/bin/wrf_hydro_nwm_jedi_hofx3d.x
+    yaml: /glade/work/afox/jedi/Jedi_experiments/config/hofx3d_colorado_workflow.yaml
+    increment: False
+
+    # --- 3dvar: warning, not currenlty implemented
+    # exe: /path/to/wrf_hydro_nwm_jedi_var.x
+    # yaml: /path/to/yaml/3dvar_owp.yaml
+    # increment: True
+
+  increment:
+    exe: /glade/u/home/soren/src/jedi/add_jedi_increment/bin/jedi_increment
+
+  wrf_hydro:
+    exe: wrf_hydro.exe
+    # exe: mpirun -np 32 wrf_hydro.exe
+    build_dir: /glade/u/home/afox/work/wrf_hydro_nwm_public
+    domain_dir: /glade/u/home/afox/work/jedi/workflow/CO_state_domain
+    hydro_patches_json: /glade/u/home/afox/work/jedi/workflow/CO_state_domain/hydro_namelist_patches.json
+    hrldas_patches_json: /glade/u/home/afox/work/jedi/workflow/CO_state_domain/hrldas_namelist_patches.json
+    hydro_json: /glade/u/home/afox/work/jedi/workflow/CO_state_domain/hydro_namelists.json
+    hrldas_json: /glade/u/home/afox/work/jedi/workflow/CO_state_domain/hrldas_namelists.json
+    version: 'v5.2.0'
+    config: 'nwm_long_range'
+
+  # WRF-Hydro only is run in a precycle if start_wrf-h_time is
+  # less than start_jedi_time
+  time:
+    # start_wrf-h_time: 2019-02-27_01:00:00 # precycl would be ran
+    start_wrf-h_time: 2021-03-01_00:00:00
+    start_jedi_time:  2021-03-01_00:00:00
+    end_time:         2021-03-31_00:00:00
+    assim_window:
+      hours: 24
+    advance_model_hours: 24
