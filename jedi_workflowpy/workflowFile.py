@@ -156,7 +156,20 @@ class NC_Filename(Filename):
         self.incrementfilename = self.filename + '.increment'
         if self.ens_base_dir != "":
             self.ens_member_dir = self.ens_base_dir + \
-                self.date_stringify() + f"/member_{self.mem_num:03}"
+                self.date.strftime('%Y%m%d%H') + f"/member_000"
+
+    def advance_wwd(self, to_dir):
+        self.previousfilename = self.filename
+        self.date += self.dt
+        self.filename = \
+            self.filebase + \
+            self.date.strftime(self.dt_format) + \
+            self.fileend
+        self.fullpath = to_dir + '/' + self.filename
+        self.incrementfilename = self.filename + '.increment'
+        if self.ens_base_dir != "":
+            self.ens_member_dir = self.ens_base_dir + \
+                self.date.strftime('%Y%m%d%H') + f"/member_000"
 
     def date_stringify(self):
         return self.date.strftime(self.dt_format)
@@ -190,7 +203,7 @@ class NC_Filename(Filename):
         self.mem_num = mem_num
         self.ens_base_dir = base_dir + '/' + name
         self.ens_member_dir = base_dir + '/' + name + \
-            self.date_stringify() + f"/member_{mem_num-1:03}"
+            self.date.strftime('%Y%m%d%H') + f"/member_000"
 
     def copy_from_ens_member_dir(self, to_dir):
         from_path = self.ens_member_dir + '/' + \
