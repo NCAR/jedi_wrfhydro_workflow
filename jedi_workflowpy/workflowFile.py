@@ -21,14 +21,16 @@ class Filename:
         dirname = check_path(topath)
         shutil.move(self.fullpath, dirname)
         self.fullpath = dirname + self.filename
-        print('moved', old_fullpath, 'to', self.fullpath)
-    def copy_to(self, topath):
+        print('moved', old_fullpath, 'to', self.fullpath, "")
+    def copy_to(self, topath, frompath = ''):
+        if frompath != '':
+            self.fullpath = frompath
         old_fullpath = self.fullpath
         self.dirname = check_path(topath)
         shutil.copy(self.fullpath, self.dirname)
-        self.fullpath = self.dirname + self.filename
-        print('copied', old_fullpath, 'to', self.fullpath)
-
+        self.fullpath = self.dirname + os.path.basename(old_fullpath)
+        print('copied', old_fullpath, 'to', self.dirname,
+              'fullpath now', self.fullpath)
 
 class YAML_Filename(Filename):
     def __init__(self, fullpath):
@@ -99,18 +101,19 @@ class JSON_Filename(Filename):
 
 class Obs():
     def __init__(self, obs_dir, obs, time):
-        self.name = obs['obs space']['name']
         dt_format = '%Y-%m-%dT%H:%M:%SZ'
         for key,val in obs['obs space'].items():
             if key == 'obsdatain':
                 self.f_in = NC_Filename(obs_dir,
                                         val['obsfile'],
                                         time,
+                                        obs['obs space']['name'],
                                         dt_format)
             if key == 'obsdataout':
                 self.f_out = NC_Filename('.',
                                          val['obsfile'],
                                          time,
+                                         obs['obs space']['name'],
                                          dt_format)
 
     def advance(self):
@@ -119,12 +122,17 @@ class Obs():
 
 
 class NC_Filename(Filename):
-    def __init__(self, restart_dir, fullpath, time, dt_format='%Y%m%d%H'):
+    def __init__(self, restart_dir, fullpath, time, name, dt_format='%Y%m%d%H'):
         self.dirname = restart_dir + '/'
         self.restart_dir = restart_dir + '/'
+        print("--debugging--")
+        print('fullpath = ', fullpath)
+        print('os.path.basename(fullpath) = ', os.path.basename(fullpath))
         self.filename = os.path.basename(fullpath)
         self.fullpath = self.dirname + self.filename
         self.previousfilename = ''
+        self.ens_base_dir = ''
+        self.name = name
         if dt_format == '%Y%m%d%H':
             reg_s = '[1-9][0-9]{3}[0-1][0-9][0-3][0-9][0-2][0-4]'
         elif dt_format == '%Y-%m-%d_%H:%M':
@@ -135,6 +143,12 @@ class NC_Filename(Filename):
             print('Error: reg_s is not defined for dt_format =', dt_format)
             sys.exit()
         s = re.search(reg_s, self.filename)
+        print('---debug')
+        print('fullpath=',fullpath)
+        print('filename=',self.filename)
+        print('s',s)
+        print('dt_format', dt_format)
+        print('reg_s', reg_s)
         self.filebase = self.filename[:s.start()]
         self.fileend = self.filename[s.end():]
         date_s = self.filename[s.start():s.end()]
@@ -145,6 +159,10 @@ class NC_Filename(Filename):
         self.set_date(self.date)
 
     def advance(self):
+        date_s = re.sub('\-|\_|\:00', '', self.date_stringify())
+        self.old_ens_member_dir = self.dirname + '/' + \
+            self.name + date_s + '/' + \
+            f"member_000"
         self.previousfilename = self.filename
         self.date += self.dt
         self.filename = \
@@ -162,7 +180,7 @@ class NC_Filename(Filename):
         self.dirname = check_path(topath)
         shutil.copy(self.fullpath, self.dirname)
         self.fullpath = self.dirname + self.filename
-        print('copied', old_fullpath, 'to', self.fullpath)
+        print('copy_previous: copied', old_fullpath, 'to', self.fullpath)
 
     def append(self, postfix):
         self.fullpath += postfix
@@ -177,7 +195,16 @@ class NC_Filename(Filename):
         self.fullpath = self.dirname + self.filename
 
     def copy_from_restart_dir(self, to_dir):
+        self.dirname = check_path(to_dir)
         from_path = self.restart_dir + self.filename
         shutil.copy(from_path, to_dir)
         self.fullpath = to_dir + '/' + self.filename
-        print('copied', from_path, 'to', self.fullpath)
+        print('copy_from_restart_dir: copied', from_path, 'to', self.fullpath)
+
+    def copy_from_old_ens_member_dir(self, to_dir, mem_num=1):
+        # copy old time
+        from_path = self.old_ens_member_dir + '/' + \
+            self.filebase + \
+            (self.date).strftime(self.dt_format) + \
+            self.fileend
+        self.copy_to(to_dir, from_path)

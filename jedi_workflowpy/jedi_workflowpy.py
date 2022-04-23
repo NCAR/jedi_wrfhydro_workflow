@@ -34,7 +34,7 @@ class Workflow:
             pprint("Starting Pre-Cycle Process", 1)
             self.run_ensemble()
             self.time.pre_wrf_h_done()
-            self.setup_experiment()
+            self.setup_experiment(precyclerun=True)
             self.prep_next_cycle(precyclerun=True)
             pprint("Ending Pre-Cycle Process", 1)
 
@@ -102,26 +102,59 @@ class Workflow:
             ensemble.run()
 
 
+    def prepare_ensemble_yamls(self):
+        restart_f = self.simulation.base_hydro_namelist['hydro_nlist']['restart_file']
+        restart_f_add =  restart_f+'_mem001'
+        restart_f_minus =  restart_f+'_mem002'
+        restarts = [restart_f, restart_f_add, restart_f_minus]
+        # print(restarts)
+        # print(pwd())
+        # print("debug: exiting")
+        sys.exit()
+
+
+    def prepare_LETKF_OI(self):
+        restart_f = self.simulation.base_hydro_namelist['hydro_nlist']['restart_file']
+        restart_f_add =  restart_f+'_mem001'
+        restart_f_minus =  restart_f+'_mem002'
+        modify_restart_vars(restart_f, restart_f_add, operator.add,
+                            self.LETKF_OI.vars)
+        modify_restart_vars(restart_f, restart_f_minus, operator.sub,
+                            self.LETKF_OI.vars)
+        # restart_tuple = ('base_hydro_namelist', 'hydro_nlist', 'restart_file')
+        # restarts = [restart_f, restart_f_add, restart_f_minus]
+        # ensemble.set_member_diffs(restart_tuple, restarts)
+
+
+
     def prep_next_cycle(self, precyclerun=False):
         pprint("Advancing to " + str(self.time.future), 2)
         if not precyclerun:
+            # print("DEBUG:::lsm_file_fullpath", self.lsm_file.fullpath)
+            # print("DEBUG:::hydro_file_fullpath", self.hydro_file.fullpath)
             self.time.advance()
             self.lsm_file.advance()
             self.hydro_file.advance()
-            self.lsm_file.copy_from_restart_dir(self.workflow_work_dir)
-            self.hydro_file.copy_from_restart_dir(self.workflow_work_dir)
-
+            self.lsm_file.copy_from_old_ens_member_dir(
+                self.workflow_work_dir)
+            self.hydro_file.copy_from_old_ens_member_dir(
+                self.workflow_work_dir)
+            self.advance_obs_and_update_jedi_yaml()
+            for obs in self.jedi_obs:
+                print('jedi_obs_in =', obs.f_in.fullpath)
+                print('jedi_obs_out =', obs.f_out.fullpath)
+                shutil.copy(obs.f_in.fullpath, obs.f_out.fullpath)
 
         self.jedi_yaml.put_key('filename_lsm', self.lsm_file.fullpath)
         self.jedi_yaml.put_key('filename_hydro', self.hydro_file.fullpath)
+        self.wrf_h_hydro_json.put_key('restart_file', self.hydro_file.fullpath)
+        self.wrf_h_hrldas_json.put_time(self.time.current)
         self.jedi_yaml.put_key('window begin',
                                str(self.jedi_obs[0].f_in.date_stringify()))
         self.jedi_yaml.put_key('date',
                                str(self.jedi_obs[0].f_in.date_stringify()))
         self.wrf_h_hydro_json.put_key('restart_file', self.hydro_file.fullpath)
         self.wrf_h_hrldas_json.put_time(self.time.current)
-        if not precyclerun:
-            self.advance_obs_and_update_jedi_yaml()
 
         self.jedi_yaml.write()
         self.wrf_h_hrldas_json.write()
@@ -131,11 +164,6 @@ class Workflow:
         print('filename_hydro =', self.hydro_file.fullpath)
         print('hrldas_namelist.json =', self.wrf_h_hrldas_json.fullpath)
         print('hydro_namelist.json =', self.wrf_h_hydro_json.fullpath)
-        if not precyclerun:
-            for obs in self.jedi_obs:
-                print('jedi_obs_in =', obs.f_in.fullpath)
-                print('jedi_obs_out =', obs.f_out.fullpath)
-                shutil.copy(obs.f_in.fullpath, obs.f_out.fullpath)
         cd(self.workflow_work_dir)
 
 
@@ -166,18 +194,26 @@ class Workflow:
     # make sure everything is in proper format
     # make sure directories exist
     # update dates to workflow date
-    def setup_experiment(self):
+    def setup_experiment(self, precyclerun=False):
         self.lsm_file.set_date(self.time.current)
         self.hydro_file.set_date(self.time.current)
 
-        # collect starting files
-        self.lsm_file.copy_from_restart_dir(self.workflow_work_dir)
-        self.hydro_file.copy_from_restart_dir(self.workflow_work_dir)
+        # -- collect starting files
+        # if precyclerun setup, then the model has been run and files are
+        #   retrieved from the past simulation
+        if (precyclerun):
+            self.lsm_file.copy_from_past_ens_member_dir(self.workflow_work_dir)
+            self.hydro_file.copy_from_past_ens_member_dir(self.workflow_work_dir)
+        else:
+            self.lsm_file.copy_from_restart_dir(self.workflow_work_dir)
+            self.hydro_file.copy_from_restart_dir(self.workflow_work_dir)
 
         # update jedi yaml with copied files
         self.jedi_yaml.put_key('filename_lsm', self.lsm_file.fullpath)
         self.jedi_yaml.put_key('filename_hydro', self.hydro_file.fullpath)
         self.wrf_h_hydro_json.put_key('restart_file', self.hydro_file.fullpath)
+        self.wrf_h_hrldas_json.put_key('restart_filename_requested',
+                                       self.lsm_file.fullpath)
         self.wrf_h_hrldas_json.put_time(self.time.current)
 
         self.jedi_obs_init()
@@ -202,8 +238,11 @@ class Workflow:
                 model = pickle.load(f)
         else:
             model.compile(str(self.workflow_wrf_dir))
+
         print('Using', self.wrf_h_hydro_json.fullpath)
         print('Using', self.wrf_h_hrldas_json.fullpath)
+        print('Model:')
+
         domain = \
             wrfhydropy.Domain(self.wrf_h_domain_dir,
                               config,
@@ -228,13 +267,13 @@ class Workflow:
     def read_yamls(self):
         pprint("Reading yamls", 2)
         self.workflow_yaml = wf.YAML_Filename(self.workflow_yaml_f)
+        self.name = self.workflow_yaml.yaml['experiment']['name']
         self.read_yaml_dirs()
         self.collect_yamls_and_jsons()
         self.read_yaml_time()
         self.read_jedi_yaml()
         self.read_increment_exe()
         self.read_yaml_wrf_hydro()
-        self.name = self.workflow_yaml.yaml['experiment']['name']
 
 
     # create yaml objects and move them
@@ -258,7 +297,7 @@ class Workflow:
         self.wrf_h_exe = wrf_h_run_dir + wrf_h_yaml['exe']
         self.wrf_h_domain_dir = check_path(wrf_h_yaml['domain_dir'])
         if not os.path.isfile(self.wrf_h_exe):
-            exit("wrf_hydro.exe no found in " + wrf_h_build_dir)
+            exit("wrf_hydro.exe not found at " + self.wrf_h_exe)
         self.wrf_h_version = wrf_h_yaml['version']
         self.wrf_h_config = wrf_h_yaml['config']
 
@@ -272,9 +311,9 @@ class Workflow:
         filename_lsm = get_yaml_key(self.jedi_yaml.yaml, 'filename_lsm')
         filename_hydro = get_yaml_key(self.jedi_yaml.yaml, 'filename_hydro')
         self.lsm_file = wf.NC_Filename(self.restarts_dir, filename_lsm,
-                                       self.time)
+                                       self.time, self.name)
         self.hydro_file = wf.NC_Filename(self.restarts_dir, filename_hydro,
-                                         self.time, '%Y-%m-%d_%H:%M')
+                                         self.time, self.name, '%Y-%m-%d_%H:%M')
         jedi = self.workflow_yaml.yaml['experiment']['jedi']
         self.jedi_exe = jedi['exe']
         self.jedi_increment = jedi['increment']

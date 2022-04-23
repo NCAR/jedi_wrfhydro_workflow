@@ -44,6 +44,13 @@ graph TD
 
 
 # Miscellaneous Information
+## Note
+The member directories that are created by wrfhydropy have restart files that
+aren't used and may not correspond with the actuals files being used.
+The yamls point to the real files being used and those reside in the top
+directory, named after the project name.
+
+
 ## YAMLs
 JEDI Workflow YAML: if the `start_wrf-h_time` and `start_jedi_time` time are
 equal, then WRF-Hydro is not run before starting the cycle, only a restart
