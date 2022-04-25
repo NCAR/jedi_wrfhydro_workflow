@@ -143,14 +143,11 @@ class Workflow:
     def prep_next_cycle(self, precyclerun=False):
         pprint("Advancing to " + str(self.time.future), 2)
         if not precyclerun:
-            print("DEBUG:::lsm_file_fullpath", self.lsm_file.fullpath)
-            print("DEBUG:::hydro_file_fullpath", self.hydro_file.fullpath)
             self.lsm_file.copy_from_ens_member_dir(self.workflow_work_dir)
             self.hydro_file.copy_from_ens_member_dir(self.workflow_work_dir)
             self.time.advance()
             self.lsm_file.advance_wwd(self.workflow_work_dir)
             self.hydro_file.advance_wwd(self.workflow_work_dir)
-        print("DEBUG3:::lsm_file_fullpath", self.lsm_file.fullpath)
         self.jedi_yaml.put_key('filename_lsm', self.lsm_file.fullpath)
         self.jedi_yaml.put_key('filename_hydro', self.hydro_file.fullpath)
         self.wrf_h_hydro_patches_json.put_key('restart_file', self.hydro_file.fullpath)

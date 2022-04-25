@@ -1,6 +1,6 @@
 experiment:
   name: 'foo'
-  workflow_work_dir: /glade/u/home/afox/work/jedi/workflow/expts/colorado_debug
+  workflow_work_dir: /glade/u/home/afox/work/jedi/workflow/expts/colorado_oi_test
 
   init:
     restarts_dir: /glade/work/afox/jedi/Jedi_experiments/input/wrf_hydro_nwm_files/colorado
@@ -38,7 +38,7 @@ experiment:
     # start_wrf-h_time: 2019-02-27_01:00:00 # precycl would be ran
     start_wrf-h_time: 2021-03-01_00:00:00
     start_jedi_time:  2021-03-01_00:00:00
-    end_time:         2021-03-31_00:00:00
+    end_time:         2021-03-02_00:00:00
     assim_window:
       hours: 24
     advance_model_hours: 24
