@@ -84,8 +84,8 @@ class Workflow:
             exe_cmd = self.wrf_h_exe,
             restart_dir = self.workflow_work_dir,
             restart_file_time = self.time.current_s,
-            restart = True
-        )
+            restart = True,
+            restart_freq_hr = self.advance_model_hrs)
 
         current_work_dir = self.name+shorten(self.time.current_s)
         os.mkdir(current_work_dir)
@@ -335,7 +335,7 @@ class Workflow:
     def read_yaml_time(self):
         time = self.workflow_yaml.yaml['experiment']['time']
         self.time = wt.WorkflowpyTime(time)
-
+        self.advance_model_hrs = time['advance_model_hours']
 
     def run(self, cmd):
         print('$', ' '.join(map(str,cmd)))
