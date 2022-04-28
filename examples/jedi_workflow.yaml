@@ -21,12 +21,14 @@ experiment:
     exe: /glade/u/home/soren/src/jedi/add_jedi_increment/bin/jedi_increment
 
   wrf_hydro:
-    exe: wrf_hydro.exe
-    # exe: mpirun -np 32 wrf_hydro.exe
+    cmd: ./wrf_hydro.exe
+    # cmd: mpirun -np 32 wrf_hydro.exe
     build_dir: /path/to/wrf_hydro/build
     domain_dir: /path/to/wrf_hydro/domain
-    hydro_json: /path/to/hydro_namelists.json
-    hrldas_json: /path/to/hrldas_namelists.json
+    hydro_json_base: /path/to/hydro_namelists.json
+    hrldas_json_base: /path/to/hrldas_namelists.json
+    hydro_json: /path/to/hydro_namelist_patches.json
+    hrldas_json: /path/to/hrldas_namelist_patches.json
     version: 'v5.2.0'
     config: 'nwm_long_range'
 
