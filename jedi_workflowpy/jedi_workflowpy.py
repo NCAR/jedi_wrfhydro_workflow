@@ -81,7 +81,7 @@ class Workflow:
             self.name,
             self.time.current_s,
             self.time.future_s,
-            exe_cmd = self.wrf_h_exe,
+            exe_cmd = self.wrf_h_cmd,
             restart_dir = self.workflow_work_dir,
             restart_file_time = self.time.current_s,
             restart = True,
@@ -229,14 +229,18 @@ class Workflow:
 
         model = wrfhydropy.Model(
             source_dir = self.wrf_h_build_dir,
-            compiler = 'gfort',
+            compiler = 'ifort',
             compile_options={'WRF_HYDRO_NUDGING': 0},
+            hydro_namelist_config_file  = self.wrf_h_base_hydro_json,
+            hrldas_namelist_config_file = self.wrf_h_base_hrldas_json,
             model_config=config
         )
         if (self.workflow_wrf_dir.exists()):
             with open(self.workflow_wrf_dir / 'WrfHydroModel.pkl', 'rb') as f:
                 model = pickle.load(f)
         else:
+            print('[OK] Creating compile directory ', str(self.workflow_wrf_dir))
+            print('[OK] Compiling wrf-hydro model ... ')
             model.compile(str(self.workflow_wrf_dir))
 
         print('Using', self.wrf_h_hydro_json.fullpath)
@@ -292,12 +296,14 @@ class Workflow:
         wrf_h_yaml = self.workflow_yaml.yaml['experiment']['wrf_hydro']
         self.wrf_h_build_dir = check_wrf_h_build_path(
             wrf_h_yaml['build_dir'])
-        wrf_h_run_dir = check_wrf_h_run_path(wrf_h_yaml['build_dir']
-                                             + '/trunk/NDHMS/Run')
-        self.wrf_h_exe = wrf_h_run_dir + wrf_h_yaml['exe']
+        # wrf_h_run_dir = check_wrf_h_run_path(wrf_h_yaml['build_dir']
+        #                                      + '/trunk/NDHMS/Run')
+        self.wrf_h_exe = self.workflow_wrf_dir / 'wrf_hydro.exe'
+        self.wrf_h_cmd = wrf_h_yaml['cmd']
         self.wrf_h_domain_dir = check_path(wrf_h_yaml['domain_dir'])
-        if not os.path.isfile(self.wrf_h_exe):
-            exit("wrf_hydro.exe not found at " + self.wrf_h_exe)
+        print('self.wrf_h_exe: ',self.wrf_h_exe )
+        self.wrf_h_base_hydro_json = wrf_h_yaml['hydro_json_base']
+        self.wrf_h_base_hrldas_json = wrf_h_yaml['hrldas_json_base']
         self.wrf_h_version = wrf_h_yaml['version']
         self.wrf_h_config = wrf_h_yaml['config']
 
@@ -434,19 +440,19 @@ def check_path(path):
         path += '/'
     return path
 
-def check_wrf_h_run_path(path: str) -> str:
-    path = check_path(path)
-    if path.endswith('trunk/NDHMS/Run/'):
-        pass
-    elif path.endswith('trunk/NDHMS/'):
-        path += 'Run/'
-    elif path.endswith('trunk/'):
-        path += 'NDHMS/Run/'
-    else:
-        path += 'trunk/NDHMS/Run/'
-    if not os.path.isdir(path):
-        exit("WRF-Hydro path: " + path + " not found")
-    return path
+# def check_wrf_h_run_path(path: str) -> str:
+#     path = check_path(path)
+#     if path.endswith('trunk/NDHMS/Run/'):
+#         pass
+#     elif path.endswith('trunk/NDHMS/'):
+#         path += 'Run/'
+#     elif path.endswith('trunk/'):
+#         path += 'NDHMS/Run/'
+#     else:
+#         path += 'trunk/NDHMS/Run/'
+#     if not os.path.isdir(path):
+#         exit("WRF-Hydro path: " + path + " not found")
+#     return path
 
 def check_wrf_h_build_path(path: str) -> str:
     path = check_path(path)
