@@ -16,21 +16,31 @@ class Filename:
     def __init__(self, fullpath):
         self.filename = os.path.basename(fullpath)
         self.fullpath = fullpath
-    def move_to(self, topath):
+    def move_to(self, to_dir):
         old_fullpath = self.fullpath
-        dirname = check_path(topath)
+        dirname = check_path(to_dir)
         shutil.move(self.fullpath, dirname)
         self.fullpath = dirname + self.filename
         print('moved', old_fullpath, 'to', self.fullpath, "")
-    def copy_to(self, topath, frompath = ''):
-        if frompath != '':
-            self.fullpath = frompath
+    def copy_to(self, to_dir='', from_path = '', to_file='', update_path=True):
         old_fullpath = self.fullpath
-        self.dirname = check_path(topath)
-        shutil.copy(self.fullpath, self.dirname)
-        self.fullpath = self.dirname + os.path.basename(old_fullpath)
-        print('copied', old_fullpath, 'to', self.dirname,
-              'fullpath now', self.fullpath)
+        # setup from
+        if from_path != '':
+            self.fullpath = from_path
+        # setup to
+        if to_dir == '':
+            to_dir = './'
+        else:
+            to_dir = check_path(to_dir)
+        if to_file == '':
+            to_file = os.path.basename(self.fullpath)
+
+        shutil.copy(self.fullpath, to_dir + to_file)
+        if update_path==True:
+            self.dirname = to_dir
+            self.fullpath = to_dir + to_file
+        print('copied', old_fullpath, 'to', to_dir + to_file)
+
 
 class YAML_Filename(Filename):
     def __init__(self, fullpath):
@@ -61,9 +71,17 @@ class YAML_Filename(Filename):
                 found = self.put_key(put_key, put_val, val)
         return found
 
+    def put_key_LETKF_OI(self, lsm_file, hydro_file):
+        members = self.yaml['background']['members']
+        for i,member in enumerate(members):
+            member['filename_lsm'] = lsm_file + f'_mem{i+1:0{3}d}'
+            member['filename_hydro'] = hydro_file
 
 class JSON_Filename(Filename):
     def __init__(self, fullpath):
+        if fullpath == None:
+            self.fullpath = None
+            return
         self.filename = os.path.basename(fullpath)
         self.fullpath = fullpath
         self.read()
@@ -143,7 +161,7 @@ class NC_Filename(Filename):
         self.filebase = self.filename[:s.start()]
         self.fileend = self.filename[s.end():]
         date_s = self.filename[s.start():s.end()]
-        self.incrementfilename = self.filename + '.increment'
+        self.incrementfilename = ''
         self.date = time.current
         self.dt_format = dt_format
         self.dt = time.dt
@@ -161,14 +179,13 @@ class NC_Filename(Filename):
             self.date.strftime(self.dt_format) + \
             self.fileend
         self.fullpath = self.dirname + self.filename
-        self.incrementfilename = self.filename + '.increment'
 
     def date_stringify(self):
         return self.date.strftime(self.dt_format)
 
-    def copy_previous(self, topath):
+    def copy_previous(self, to_dir):
         old_fullpath = self.fullpath
-        self.dirname = check_path(topath)
+        self.dirname = check_path(to_dir)
         shutil.copy(self.fullpath, self.dirname)
         self.fullpath = self.dirname + self.filename
         print('copy_previous: copied', old_fullpath, 'to', self.fullpath)
