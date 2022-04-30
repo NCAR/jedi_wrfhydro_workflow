@@ -8,6 +8,7 @@ import re
 import subprocess
 import shutil
 import sys
+import time as py_time
 import wrfhydropy
 import workflowTime as wt
 # rm after dev finished
@@ -35,6 +36,7 @@ class Workflow:
 
     def init(self, args):
         pprint("Initializing Workflowpy", 1)
+        self.start_time = py_time.time()
         self.parse_arguments(args)
         self.get_resource_info() # todo: one node hard coded
         self.read_yamls()
@@ -103,8 +105,9 @@ class Workflow:
             print("output")
             print(out.stdout.decode("utf-8"))
         if out.stderr != None:
-            print("error")
+            print("Error: exiting")
             print(out.stderr.decode("utf-8"))
+            sys.exit()
 
 
     def increment_restart(self):
@@ -127,11 +130,16 @@ class Workflow:
         ensemble.add(self.simulation)
         ensemble.replicate_member(1)
 
+        if self.num_p > 1:
+            cmd = f'mpiexec -np {str(self.num_p)} {self.wrf_h_exe}'
+        else:
+            cmd = self.wrf_h_exe
+
         job = wrfhydropy.Job(
             self.name,
             self.time.current_s,
             self.time.future_s,
-            exe_cmd = self.wrf_h_exe,
+            exe_cmd = cmd,
             restart_dir = self.workflow_work_dir,
             restart_file_time = self.time.current_s,
             restart = True,
@@ -195,8 +203,8 @@ class Workflow:
     # setup simulation
     def setup_wrfhydropy(self):
         model = wrfhydropy.Model(
-            source_dir = self.wrf_h_build_dir,
-            compiler = 'gfort',
+            source_dir = self.wrf_h_src_dir,
+            compiler = self.compiler,
             compile_options={'WRF_HYDRO_NUDGING': 0},
             hydro_namelist_config_file = self.wrf_h_hydro_json.fullpath,
             hrldas_namelist_config_file = self.wrf_h_hrldas_json.fullpath,
@@ -309,14 +317,31 @@ class Workflow:
     def read_yamls(self):
         pprint("Reading yamls", 2)
         self.workflow_yaml = wf.YAML_Filename(self.workflow_yaml_f)
-        self.name = self.workflow_yaml.yaml['experiment']['name']
-        self.read_yaml_dirs()
+        self.read_yaml_experiment()
+        self.read_yaml_init()
         self.read_yaml_time()
         self.read_jedi_yaml()
         self.read_increment_exe()
         self.collect_yamls_and_jsons()
         self.read_yaml_wrf_hydro()
 
+    def read_yaml_experiment(self):
+        experiment = self.workflow_yaml.yaml['experiment']
+        self.name = experiment['name']
+        self.num_p = experiment['num_p']
+        self.compiler = self.parse_compiler(experiment['compiler'])
+        self.workflow_work_dir = experiment['workflow_work_dir']
+        self.workflow_wrf_dir = Path(self.workflow_work_dir + '/wrf_hydro_exe/')
+        check_dir(self.workflow_work_dir)
+
+    def parse_compiler(self, compiler):
+        if compiler.lower() in ['gfort','gfortran','gnu']:
+            return 'gfort'
+        elif compiler.lower() in ['ifort','mpifort','mpiifort','intel']:
+            return 'intel'
+        else:
+            print('Error: ', compiler, 'does not match permitted options')
+            sys.exit()
 
     # create yaml objects and move them
     def collect_yamls_and_jsons(self):
@@ -350,14 +375,10 @@ class Workflow:
 
     def read_yaml_wrf_hydro(self):
         wrf_h_yaml = self.workflow_yaml.yaml['experiment']['wrf_hydro']
-        self.wrf_h_build_dir = check_wrf_h_build_path(
-            wrf_h_yaml['build_dir'])
-        wrf_h_run_dir = check_wrf_h_run_path(wrf_h_yaml['build_dir']
-                                             + '/trunk/NDHMS/Run')
-        self.wrf_h_exe = wrf_h_run_dir + wrf_h_yaml['exe']
+        self.wrf_h_src_dir = check_wrf_h_build_path(
+            wrf_h_yaml['src_dir'])
+        self.wrf_h_exe = str(self.workflow_wrf_dir) + '/wrf_hydro.exe'
         self.wrf_h_domain_dir = check_path(wrf_h_yaml['domain_dir'])
-        if not os.path.isfile(self.wrf_h_exe):
-            exit("wrf_hydro.exe not found at " + self.wrf_h_exe)
         self.wrf_h_version = wrf_h_yaml['version']
         self.wrf_h_config = wrf_h_yaml['config']
 
@@ -401,11 +422,7 @@ class Workflow:
             pass
 
 
-    def read_yaml_dirs(self):
-        self.workflow_work_dir = \
-            self.workflow_yaml.yaml['experiment']['workflow_work_dir']
-        self.workflow_wrf_dir = Path(self.workflow_work_dir + '/wrf_hydro_exe/')
-        check_dir(self.workflow_work_dir)
+    def read_yaml_init(self):
         self.restarts_dir = \
             self.workflow_yaml.yaml['experiment']['init']['restarts_dir']
         self.obs_dir = \
@@ -439,6 +456,8 @@ class Workflow:
 
     def end(self):
         pprint("Exiting Workflowpy", 1)
+        end_time = py_time.time() - self.start_time
+        print("Runtime took", end_time, "seconds")
         sys.exit()
 
 

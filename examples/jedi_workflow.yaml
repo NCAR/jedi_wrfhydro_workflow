@@ -1,12 +1,13 @@
 experiment:
   name: 'foo'
+  num_p: 36
+  compiler: gnu
   workflow_work_dir: /path/to/workflow/work/dir
 
   init:
     restarts_dir: /path/to/restarts
     obs_dir: /path/to/obs
 
-  jedi:
   jedi:
     method: LETKF-OI
     LETKF-OI:
@@ -29,10 +30,8 @@ experiment:
     exe: /glade/u/home/soren/src/jedi/add_jedi_increment/bin/jedi_increment
 
   wrf_hydro:
-    exe: wrf_hydro.exe
-    # exe: mpirun -np 32 wrf_hydro.exe
-    build_dir: /path/to/wrf_hydro/build
-    domain_dir: /path/to/wrf_hydro/domain
+    src_dir: /path/to/wrf_hydro
+    domain_dir: /path/to/wrf_hydro_domain
     hydro_json: /path/to/hydro_namelists.json
     hrldas_json: /path/to/hrldas_namelists.json
     hydro_patches_json: /path/to/hydro_namelist_patches.json
@@ -43,7 +42,7 @@ experiment:
   # WRF-Hydro only is run in a precycle if start_wrf-h_time is
   # less than start_jedi_time
   time:
-    # start_wrf-h_time: 2019-02-27_01:00:00 # precycl would be ran
+    # start_wrf-h_time: 2019-02-27_01:00:00 # precycle would be ran
     start_wrf-h_time: 2019-03-01_01:00:00
     start_jedi_time:  2019-03-01_01:00:00
     end_time:         2019-03-03_01:00:00
