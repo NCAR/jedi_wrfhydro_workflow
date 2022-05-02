@@ -470,7 +470,8 @@ def get_yaml_key(yaml_tree, get_key):
             found = get_yaml_key(val, get_key)
         elif (type(val) == list) and found == False:
             for item in val:
-                found = get_yaml_key(item, get_key)
+                if type(item) == dict:
+                    found = get_yaml_key(item, get_key)
     return found
 
 def put_yaml_key(yaml_tree, put_key, put_val):

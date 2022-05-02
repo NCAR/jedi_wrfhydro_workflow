@@ -17,7 +17,7 @@ experiment:
       vars:
         SNOWH: 0.02121
         SNEQV: 21.21*0.25
-    hOfX:
+    hOfx:
       exe: /path/to/wrf_hydro_nwm_jedi_hofx3d.x
       yaml: /path/to/hofx3d_taylor_park.yaml
       increment: False
