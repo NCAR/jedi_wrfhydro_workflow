@@ -403,7 +403,7 @@ class Workflow:
 
     def read_jedi_method(self, jedi):
         self.jedi_method = jedi['method']
-        mode_list = ['LETKF-OI', 'hOfx', '3dvar']
+        mode_list = ['LETKF-OI', 'hofx', '3dvar']
         if self.jedi_method not in mode_list:
             print("Error: jedi method", jedi['method'],
                   'not in', mode_list)
@@ -416,7 +416,7 @@ class Workflow:
 
         if self.jedi_method == 'LETKF-OI':
             self.LETKF_OI = LETKF_OI(jedi_method_yaml['vars'])
-        elif self.jedi_method == 'hOfx':
+        elif self.jedi_method == 'hofx':
             pass
         elif self.jedi_method == '3dvar':
             pass
