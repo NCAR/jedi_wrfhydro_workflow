@@ -18,48 +18,50 @@ background:
       state variables: ['SNOWH']
 
 observations:
-- obs space:
-    name: 'Simulate'
-    distribution: InefficientDistribution
-    simulated variables: ['snow_depth']
-    obsdatain:
-      obsfile: '/path/to/obs/2021/202103/owp_depth_2021-03-01T00:00:00Z.nc'
-    obsdataout:
-      obsfile: 'jedi_letkf_out_obs_depth_2021-03-01T00:00:00Z.nc'
-  obs operator:
-      name: 'Identity'
-  obs error:
-      covariance model: 'diagonal'
-  obs localizations:
-  - localization method: Horizontal SOAR
-    lengthscale: 250e3
-    soar horizontal decay: 0.000021
-    max nobs: 50
-  - localization method: Vertical Brasnett
-    vertical lengthscale: 500
-  obs filters:
-  - filter: Bounds Check # negative / missing snow
-    filter variables:
-    - name: snow_depth
-    minvalue: 0.0
-  - filter: Background Check # gross error check
-    filter variables:
-    - name: snow_depth
-    threshold: 12.0
-    action:
-      name: reject
-  - filter: Domain Check
-    where:
-    - variable:
-        name: latitude@MetaData
-      minvalue: 37.0
-      maxvalue: 41.0
-  - filter: Domain Check
-    where:
-    - variable:
-        name: longitude@MetaData
-      minvalue: -109.4
-      maxvalue: -103.5
+  observers:
+  - obs space:
+      name: 'Simulate'
+      distribution:
+        name: InefficientDistribution
+      simulated variables: ['snow_depth']
+      obsdatain:
+        obsfile: '/path/to/obs/2021/202103/owp_depth_2021-03-01T00:00:00Z.nc'
+      obsdataout:
+        obsfile: 'jedi_letkf_out_obs_depth_2021-03-01T00:00:00Z.nc'
+    obs operator:
+        name: 'Identity'
+    obs error:
+        covariance model: 'diagonal'
+    obs localizations:
+    - localization method: Horizontal SOAR
+      lengthscale: 250e3
+      soar horizontal decay: 0.000021
+      max nobs: 50
+    - localization method: Vertical Brasnett
+      vertical lengthscale: 500
+    obs filters:
+    - filter: Bounds Check # negative / missing snow
+      filter variables:
+      - name: snow_depth
+      minvalue: 0.0
+    - filter: Background Check # gross error check
+      filter variables:
+      - name: snow_depth
+      threshold: 12.0
+      action:
+        name: reject
+    - filter: Domain Check
+      where:
+      - variable:
+          name: latitude@MetaData
+        minvalue: 37.0
+        maxvalue: 41.0
+    - filter: Domain Check
+      where:
+      - variable:
+          name: longitude@MetaData
+        minvalue: -109.4
+        maxvalue: -103.5
 
 
 driver:
