@@ -272,7 +272,7 @@ class Workflow:
 
     def jedi_obs_init(self):
         self.jedi_obs = []
-        for obs in self.jedi_yaml.yaml['observations']:
+        for obs in self.jedi_yaml.yaml['observations']['observers']:
             self.jedi_obs.append(wf.Obs(self.obs_dir, obs, self.time))
         self.update_jedi_yaml_obs()
 
@@ -284,7 +284,7 @@ class Workflow:
 
     def update_jedi_yaml_obs(self):
         # need to match obs in yaml to obs in list
-        for i, obs in enumerate(self.jedi_yaml.yaml['observations']):
+        for i, obs in enumerate(self.jedi_yaml.yaml['observations']['observers']):
             obs['obs space']['obsdatain']['obsfile'] = \
                 self.jedi_obs[i].f_in.fullpath
             obs['obs space']['obsdataout']['obsfile'] = \
