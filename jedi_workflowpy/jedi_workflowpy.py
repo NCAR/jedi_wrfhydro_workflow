@@ -338,7 +338,7 @@ class Workflow:
         if compiler.lower() in ['gfort','gfortran','gnu']:
             return 'gfort'
         elif compiler.lower() in ['ifort','mpifort','mpiifort','intel']:
-            return 'intel'
+            return 'ifort'
         else:
             print('Error: ', compiler, 'does not match permitted options')
             sys.exit()
