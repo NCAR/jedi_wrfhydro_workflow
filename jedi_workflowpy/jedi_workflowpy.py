@@ -299,7 +299,7 @@ class Workflow:
 
 
     def modify_restart_vars(self, f_in, f_out, math_op, vars_d):
-        ds = xr.open_dataset(f_in, engine='netcdf4')
+        ds = xr.open_dataset(f_in)
         for var in vars_d:
             ds[var] = math_op(ds[var], vars_d[var])
         ds.to_netcdf(f_out)
