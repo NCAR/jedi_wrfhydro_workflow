@@ -90,22 +90,25 @@ contains
   subroutine open_command_line_file(f, pos)
     integer, intent(out) :: f
     integer, intent(in) :: pos
-    character(len=100) :: file
+    character(len=1028) :: file
     character(len=10) :: file_type
     logical :: file_exists
     integer :: ierr
+
     if (pos == 1) then
        file_type = "restart"
     else if (pos == 2) then
        file_type = "increment"
     end if
 
-    call get_command_argument(pos,file)
+    call get_command_argument(pos, file)
     inquire(file=trim(file), exist=file_exists)
+
     if (.not. file_exists) then
        print *, trim(file), 'does not exist, exiting'
        call MPI_Abort(MPI_COMM_WORLD, 10, ierr)
     endif
+
     print *, 'opening ', file_type, 'file ', trim(file)
     ierr=nf90_open(trim(file),nf90_write,f)
     call netcdf_err(ierr, 'opening file: '//trim(file) )
