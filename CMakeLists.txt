@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.15)
 project(IncrementJedi VERSION 0.0.1 LANGUAGES Fortran)
 
 set(CMAKE_Fortran_FLAGS "-g ${CMAKE_Fortran_FLAGS}")
@@ -22,3 +22,8 @@ endif()
 enable_testing()
 add_subdirectory(src)
 add_subdirectory(tests)
+
+add_custom_target(report
+  COMMAND ${CMAKE_COMMAND}
+  -P ${CMAKE_SOURCE_DIR}/src/report.cmake
+  )
