@@ -54,6 +54,7 @@ program jedi_snow_incr
   ! if SNOWH is equal then it wasn't the increment variable, read in SNEQV
   call check_increment_equality(jedi_state%snow_depth, increment, snowh_equal)
   if (snowh_equal .eqv. .true.) then
+     print *, "SNOWH is equal, reading in SNEQV as increment variable"
      snowh_increment = .false.
      call read_wrf_hydro_increment(increment_file, we_res, sn_res, increment, &
           snowh_increment)
@@ -538,10 +539,9 @@ contains
        do i=1,increment_shape(1)
           if (increment(i,j) .ne. jedi_state_var(i,j)) then
              is_equal = .false.
-             print *, "NOT EQUAL IJ", i,j, increment(i,j), jedi_state_var(i,j)
+             return
           end if
        end do
-       if (is_equal .eqv. .false.) stop "SNOWH NOT EQUAL"
     end do
   end subroutine check_increment_equality
 
