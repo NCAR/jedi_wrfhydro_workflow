@@ -2,17 +2,21 @@ program jedi_snow_incr
   use netcdf
   use mpi
   use jedi_disag_module, only : jedi_type, updateAllLayers
+  use iso_fortran_env, only : real64
   implicit none
 
   type(jedi_type) :: jedi_state
   integer :: we_res, sn_res, len_land_vec
   ! index to map between tile and vector space
   integer, allocatable :: tile2vector(:,:)
-  double precision, allocatable :: increment(:,:)
+  real(real64), allocatable :: increment(:,:)
   integer :: restart_file, increment_file
   integer :: ierr, nprocs, myrank, lunit
   integer :: snow_layers, soil_layers, sosn_layers !sosn=soil+snow layers
   logical :: file_exists
+
+  logical :: snowh_increment
+  logical :: snowh_equal
 
   ! namelist /jedi_snow/ date_str, hour_str, we_res ,sn_res
 
@@ -42,15 +46,32 @@ program jedi_snow_incr
   allocate(increment(we_res, sn_res))
 
   call read_wrf_hydro_restart(restart_file, we_res, sn_res, jedi_state )
-  call read_wrf_hydro_increment(increment_file, we_res, sn_res, increment)
 
+  snowh_increment = .true.
+  call read_wrf_hydro_increment(increment_file, we_res, sn_res, increment, &
+       snowh_increment)
+
+  ! if SNOWH is equal then it wasn't the increment variable, read in SNEQV
+  call check_increment_equality(jedi_state%snow_depth, increment, snowh_equal)
+  if (snowh_equal .eqv. .true.) then
+     snowh_increment = .false.
+     call read_wrf_hydro_increment(increment_file, we_res, sn_res, increment, &
+          snowh_increment)
+  end if
+
+  ! no more need to read variable from the increment_file
+  ierr=nf90_close(increment_file)
+  call netcdf_err(ierr, 'closing increment file')
+
+
+  ! units fix?
   jedi_state%snow_depth = jedi_state%snow_depth * 1000
-
   increment = (increment * 1000) - jedi_state%snow_depth
+
 
   ! ADJUST THE RESTART
   print *, "Updating Data"
-  call updateAllLayers(we_res, sn_res, increment, jedi_state)
+  call updateAllLayers(we_res, sn_res, increment, jedi_state, snowh_increment)
 
   jedi_state%snow_depth = jedi_state%snow_depth / 1000
 
@@ -293,26 +314,29 @@ contains
   !  read in snow depth increment from jedi increment file
   !  file format is same as restart file
   !--------------------------------------------------------------
-  subroutine read_wrf_hydro_increment(f, we_res, sn_res, increment)
+  subroutine read_wrf_hydro_increment(f, we_res, sn_res, increment, &
+       snowh_increment)
     use mpi
     implicit none
     integer, intent(in) :: f, we_res, sn_res
-    double precision, intent(out) :: increment(we_res, sn_res)     ! snow depth increment
+    real(real64), intent(out) :: increment(we_res, sn_res)     ! snow depth increment
+    logical, intent(in) :: snowh_increment
     integer :: ierr
 
     ! read snow_depth (file name: snwdph, vert dim 1)
     ! call read_nc_var2D(ncid, len_land_vec, res, tile2vector, 0, &
     !      'snwdph    ', increment)
-    ! read snow_depth
-    call read_nc_var2D(f, we_res, sn_res, 0, &
-         'SNOWH     ', increment)
 
-    ! read snow mass?
-    ! call read_nc_var2D(f, we_res, sn_res, 0, &
-    !      'SNEQV     ', increment)
+    if (snowh_increment .eqv. .true.) then
+       ! read snow_depth
+       call read_nc_var2D(f, we_res, sn_res, 0, &
+            'SNOWH     ', increment)
+    else
+       ! read snow mass?
+       call read_nc_var2D(f, we_res, sn_res, 0, &
+            'SNEQV     ', increment)
+    end if
 
-    ierr=nf90_close(f)
-    call netcdf_err(ierr, 'closing increment file')
   end subroutine  read_wrf_hydro_increment
 
   !--------------------------------------------------------
@@ -329,10 +353,10 @@ contains
     ! integer, intent(in)             :: tile2vector(len_land_vec,2)
     integer, intent(in)             :: in3D_vdim ! 0 - input is 2D,
     ! >0, gives dim of 3rd dimension
-    double precision, intent(out)   :: data(we_res,sn_res)
+    real(real64), intent(out)   :: data(we_res,sn_res)
 
-    double precision :: dummy2D(we_res, sn_res)
-    double precision, allocatable :: dummy3D(:,:,:)
+    real(real64) :: dummy2D(we_res, sn_res)
+    real(real64), allocatable :: dummy3D(:,:,:)
     integer          :: i, j, ierr, id_var
 
     ierr=nf90_inq_varid(ncid, trim(var_name), id_var)
@@ -366,8 +390,8 @@ contains
   subroutine read_nc_var3D(ncid, we_res, sn_res, zdim, var_name, data)
     integer, intent(in)             :: ncid, we_res, sn_res, zdim
     character(len=10), intent(in)   :: var_name
-    double precision, intent(out)   :: data(we_res, zdim, sn_res)
-    ! double precision :: dummy3D(we_res, zdim, sn_res)
+    real(real64), intent(out)   :: data(we_res, zdim, sn_res)
+    ! real(real64) :: dummy3D(we_res, zdim, sn_res)
     integer          :: ierr, id_var !, nn
 
     ierr=nf90_inq_varid(ncid, trim(var_name), id_var)
@@ -441,10 +465,10 @@ contains
     character(len=10), intent(in)   :: var_name
     integer, intent(in)             :: z_dim ! 0 - input is 2D,
     ! >0, gives dim of 3rd dimension
-    double precision, intent(in)    :: data(we_res, sn_res)
+    real(real64), intent(in)    :: data(we_res, sn_res)
 
-    ! double precision :: dummy2D(res, res)
-    double precision :: dummy3D(we_res, z_dim, sn_res)
+    ! real(real64) :: dummy2D(res, res)
+    real(real64) :: dummy3D(we_res, z_dim, sn_res)
     integer          :: nn, ierr, id_var
 
     ierr=nf90_inq_varid(ncid, trim(var_name), id_var)
@@ -482,8 +506,8 @@ contains
        var_name, data)
     integer, intent(in)             :: ncid, we_res, sn_res, zdim
     character(len=10), intent(in)   :: var_name
-    double precision, intent(in)    :: data(we_res, zdim, sn_res)
-    ! double precision :: dummy3D(we_res, zdim, sn_res)
+    real(real64), intent(in)    :: data(we_res, zdim, sn_res)
+    ! real(real64) :: dummy3D(we_res, zdim, sn_res)
     integer          :: nn, ierr, id_var
 
     ierr=nf90_inq_varid(ncid, trim(var_name), id_var)
@@ -502,4 +526,23 @@ contains
     call netcdf_err(ierr, 'writing '//trim(var_name) )
   end subroutine write_nc_var3D
 
-end program
+  ! check equality of jedi state variable and increment
+  subroutine check_increment_equality(jedi_state_var, increment, is_equal)
+    real(real64), intent(in), dimension(:,:) :: jedi_state_var, increment
+    logical, intent(out) :: is_equal
+    integer :: i, j, increment_shape(2)
+
+    increment_shape = shape(increment)
+    is_equal = .true.
+    do j=1,increment_shape(2)
+       do i=1,increment_shape(1)
+          if (increment(i,j) .ne. jedi_state_var(i,j)) then
+             is_equal = .false.
+             print *, "NOT EQUAL IJ", i,j, increment(i,j), jedi_state_var(i,j)
+          end if
+       end do
+       if (is_equal .eqv. .false.) stop "SNOWH NOT EQUAL"
+    end do
+  end subroutine check_increment_equality
+
+end program jedi_snow_incr
