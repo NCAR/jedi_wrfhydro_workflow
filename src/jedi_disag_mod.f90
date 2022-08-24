@@ -39,15 +39,10 @@ contains
           do i = 1, we_res
              total_density = 0.
 
-             layerloop : do zlayer = vector_loc, 3
-                layer_density = (jedi%snow_ice_layer(i,zlayer,j)+&
-                     jedi%snow_liq_layer(i,zlayer,j)) / &
-                     (-layer_depths(zlayer))
-                total_density = total_density + layer_density
-             end do layerloop
+             total_density = jedi%swe(i,j) / jedi%snow_depth(i,j)
              ! calc total mass and total depth for each grid point
              tmp_snowh_increment(i,j) = &
-                  (increment(i,j) * 1000.d0) / (total_density)
+                  increment(i,j) * (1 / total_density)
           end do
        end do
 
