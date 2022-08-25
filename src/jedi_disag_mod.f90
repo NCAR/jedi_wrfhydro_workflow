@@ -1,31 +1,56 @@
 module jedi_disag_module
+  use iso_fortran_env, only : real64
   private
   public jedi_type, updateAllLayers
 
   type jedi_type
-     double precision, allocatable :: swe                (:,:)
-     double precision, allocatable :: snow_depth         (:,:)
-     double precision, allocatable :: active_snow_layers (:,:)
-     double precision, allocatable :: swe_previous       (:,:)
-     double precision, allocatable :: snow_soil_interface(:,:,:)
-     double precision, allocatable :: temperature_snow   (:,:,:)
-     double precision, allocatable :: snow_ice_layer     (:,:,:)
-     double precision, allocatable :: snow_liq_layer     (:,:,:)
-     double precision, allocatable :: temperature_soil   (:,:)
+     real(real64), allocatable :: swe                (:,:)
+     real(real64), allocatable :: snow_depth         (:,:)
+     real(real64), allocatable :: active_snow_layers (:,:)
+     real(real64), allocatable :: swe_previous       (:,:)
+     real(real64), allocatable :: snow_soil_interface(:,:,:)
+     real(real64), allocatable :: temperature_snow   (:,:,:)
+     real(real64), allocatable :: snow_ice_layer     (:,:,:)
+     real(real64), allocatable :: snow_liq_layer     (:,:,:)
+     real(real64), allocatable :: temperature_soil   (:,:)
   end type jedi_type
 
 contains
 
-  subroutine updateAllLayers(we_res, sn_res, increment, jedi)
+  subroutine updateAllLayers(we_res, sn_res, increment, jedi, snowh_increment)
     integer, intent(in) :: we_res, sn_res
     ! snow depth increment
-    double precision, intent(in) :: increment(we_res, sn_res)
+    real(real64), intent(inout) :: increment(we_res, sn_res)
     type(jedi_type), intent(inout)   :: jedi
+    logical, intent(in) :: snowh_increment
 
     integer :: i, j, zlayer, zinter, active_layers, vector_loc, pathway
-    double precision :: layer_density, swe_increment, liq_ratio
-    double precision :: soil_interfaces(7) = (/0.0,0.0,0.0,0.1,0.4,1.0,2.0/)
-    double precision :: partition_ratio, layer_depths(3), anal_snow_depth
+    real(real64) :: layer_density, swe_increment, liq_ratio
+    real(real64) :: total_density, total_depth
+    real(real64) :: soil_interfaces(7) = (/0.0,0.0,0.0,0.1,0.4,1.0,2.0/)
+    real(real64) :: partition_ratio, layer_depths(3), anal_snow_depth
+    real(real64), allocatable :: tmp_snowh_increment(:,:)
+
+    ! If incrememt is not SNOWH, then it is SWE, convert SWE to SNOWH
+    ! Original program setup for increment to be SNOWH
+    if (.not. snowh_increment) then
+       allocate(tmp_snowh_increment(we_res, sn_res))
+       do j = 1, sn_res
+          do i = 1, we_res
+             total_density = 0.
+
+             total_density = jedi%swe(i,j) / jedi%snow_depth(i,j)
+             ! calc total mass and total depth for each grid point
+             tmp_snowh_increment(i,j) = &
+                  increment(i,j) * (1 / total_density)
+          end do
+       end do
+
+       do concurrent(i=1:we_res, j=1:sn_res)
+          increment(i,j) = tmp_snowh_increment(i,j)
+       end do
+       deallocate(tmp_snowh_increment)
+    end if
 
     associate( &
          swe => jedi%swe                ,&
