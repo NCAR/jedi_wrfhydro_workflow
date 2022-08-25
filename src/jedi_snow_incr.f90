@@ -46,14 +46,14 @@ program jedi_snow_incr
   allocate(increment(we_res, sn_res))
 
   call read_wrf_hydro_restart(restart_file, we_res, sn_res, jedi_state )
-  
+
   snowh_increment = .true.
   call read_wrf_hydro_increment(increment_file, we_res, sn_res, increment, &
        snowh_increment)
 
   ! if SNOWH is equal then it wasn't the increment variable, read in SNEQV
   call check_increment_equality(jedi_state%snow_depth, increment, snowh_equal)
-  
+
   ! units fix - need depth in mm
   jedi_state%snow_depth = jedi_state%snow_depth * 1000
   ! Determine increment from analysis
@@ -65,7 +65,7 @@ program jedi_snow_incr
      call read_wrf_hydro_increment(increment_file, we_res, sn_res, increment, &
           snowh_increment)
      ! Determine increment from analysis
-     increment = increment - jedi_state%swe         
+     increment = increment - jedi_state%swe
   end if
 
   ! no more need to read variable from the increment_file
@@ -281,7 +281,7 @@ contains
     ! read snow_depth (file name: snwdph, vert dim 1)
     call read_nc_var2D(f, we_res, sn_res, 0, &
          snow_depth_nm, jedi_state%snow_depth)
-  
+
     ! ! read active_snow_layers (file name: snowxy, vert dim: 1)
     call read_nc_var2D(f, we_res, sn_res, 0, &
          active_snow_layers_nm, jedi_state%active_snow_layers)
