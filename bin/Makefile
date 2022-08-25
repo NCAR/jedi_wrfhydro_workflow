@@ -17,5 +17,4 @@ comp:
 	nccmp -dfS  $(restart) $(restart).orig
 
 clean:
-	rm jedi_increment
-	make -C ../ clean
+	rm -f jedi_increment
