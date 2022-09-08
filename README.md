@@ -1,10 +1,21 @@
 # JEDI Workflow
 A framework providing a workflow between WRF-Hydro/NWM JEDI and WRF-Hydro.
 
+## Build
+```console
+$ mkdir build
+$ cd build
+$ ecbuild ../
+$ make -j 4
+```
+The `jedi_snow_increment` executable will now be in the `build/bin` directory.
+The user can choose to call `jedi_workflowpy.py` from the `build/bin`
+  directory or from the `src/jedi_workflowpy` directory.
+
+# Running
 ## Prerequisites
  - Python 3 and [wrf_hydro_py](https://github.com/NCAR/wrf_hydro_py)
  - [WRF-Hydro/NWM JEDI](https://github.com/JCSDA-internal/wrf_hydro_nwm_jedi)
- - [Add JEDI Increment](https://github.com/scrasmussen/add_jedi_increment)
  - [WRF-Hydro](https://github.com/NCAR/wrf_hydro_nwm_public)
  - Prepare Experiment Configuration Files
    - jedi_workflow.yaml
@@ -18,9 +29,6 @@ A framework providing a workflow between WRF-Hydro/NWM JEDI and WRF-Hydro.
 during the initilization phase and while the model runs.
  - More to be added
 
-
-## Running
-`$ python3 jedi_workflowpy.py jedi_workflow.yaml`
 
 
 # Basic JEDI Workflow workflow
@@ -75,19 +83,6 @@ Used in conjunction with [WRF-Hydro/NWM JEDI Implementation](https://github.com/
 
 Load needed Fortran compiler, MPI and NETCDF modules.
 For testing `nccmp` will be useful.
-
-## CMake Build
-Note: `jedi_increment` will be `build/src`.
-```
-$ mkdir build
-$ cd build
-$ cmake ../
-$ make -j
-```
-
-## Run
-
-`$ ./jedi_increment RESTART.FILE RESTART.FILE.INCREMENTED`
 
 ## Test
 If you chose to build with CMake you will now be able to run CTest with added

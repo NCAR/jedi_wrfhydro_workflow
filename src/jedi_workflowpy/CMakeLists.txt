@@ -7,3 +7,10 @@
 # 		       ${CMAKE_CURRENT_SOURCE_DIR}/yamls/jedi_work.yaml)
 
 set( PYTHON_LIBRARIES ${CMAKE_CURRENT_SOURCE_DIR}/workflowpy.py )
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/jedi_workflowpy.py
+  ${CMAKE_BINARY_DIR}/bin/jedi_workflowpy.py )
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/workflowFile.py
+  ${CMAKE_BINARY_DIR}/bin/workflowFile.py   )
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/workflowTime.py
+  ${CMAKE_BINARY_DIR}/bin/workflowTime.py )
