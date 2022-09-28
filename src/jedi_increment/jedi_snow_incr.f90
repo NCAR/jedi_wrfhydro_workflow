@@ -1,6 +1,6 @@
 program jedi_snow_incr
   use netcdf
-  use mpi
+  use mpi_f08
   use jedi_disag_module, only : jedi_type, updateAllLayers
   use iso_fortran_env, only : real64
   implicit none
