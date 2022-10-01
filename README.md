@@ -1,7 +1,8 @@
 # JEDI Workflow
 A framework providing a workflow between WRF-Hydro/NWM JEDI and WRF-Hydro.
 
-## Build
+# Build Steps
+## JEDI Workflow Build
 ```console
 $ mkdir build
 $ cd build
@@ -12,22 +13,99 @@ The `jedi_snow_increment` executable will now be in the `build/bin` directory.
 The user can choose to call `jedi_workflowpy.py` from the `build/bin`
   directory or from the `src/jedi_workflowpy` directory.
 
-# Running
-## Prerequisites
- - Python 3 and [wrf_hydro_py](https://github.com/NCAR/wrf_hydro_py)
- - [WRF-Hydro/NWM JEDI](https://github.com/JCSDA-internal/wrf_hydro_nwm_jedi)
- - [WRF-Hydro](https://github.com/NCAR/wrf_hydro_nwm_public)
- - Prepare Experiment Configuration Files
-   - jedi_workflow.yaml
-   - jedi.yaml
-   - WRF-Hydro namelists, to be placed in the WRF-Hydro domain directory
-	 - hrldas_namelists.json
-     - hydro_namelists.json
 
-### Prepping YAMLs
- - The starting time in `jedi.yaml` is propagated to JEDI and WRF-Hydro YAMLs
-during the initilization phase and while the model runs.
- - More to be added
+# Cheyenne Fullstack Build and Run
+## Setup Environment
+ - Load Spack modules
+```console
+$ source gnu_spack_env.sh
+$ cat gnu_spack_env.sh
+#!/bin/bash
+
+module purge
+module unuse /glade/u/apps/ch/modulefiles/default/compilers
+export MODULEPATH_ROOT=/glade/work/jedipara/cheyenne/spack-stack/modulefiles
+module use /glade/work/jedipara/cheyenne/spack-stack/modulefiles/compilers
+module use /glade/work/jedipara/cheyenne/spack-stack/modulefiles/misc
+module load ecflow/5.8.4
+module load miniconda/3.9.12
+# GNU
+ulimit -s unlimited
+module use /glade/work/jedipara/cheyenne/spack-stack/spack-stack-v1/envs/skylab-1.0.0-gnu-10.1.0/install/modulefiles/C\
+ore
+module load stack-gcc/10.1.0
+module load stack-openmpi/4.1.1
+module load stack-python/3.9.12
+module load jedi-fv3-env/1.0.0
+module load bufr/11.7.1
+# module load jedi-ewok-env/1.0.0
+# module load nco/5.0.6
+
+# these are needed so WRF-Hydro can build without other modifications
+export NETCDF_INC=${netcdf_fortran_ROOT}/include
+export NETCDF_LIB=${netcdf_fortran_ROOT}/lib
+```
+ - Create Python environment to get wrfhydropy package
+```console
+$ python3 -m venv ~/[local_path]/env
+$ activate ~/[local_path]/env
+$ python3 -m pip install wrfhydropy
+```
+
+## Obtain Source Code
+ - Clone repositories
+```console
+$ git clone git@github.com:JCSDA-internal/wrf_hydro_nwm_jedi.git
+$ git clone git@github.com:NCAR/wrf_hydro_nwm_public.git
+$ git clone git@github.com:NCAR/jedi_workflow.git
+```
+
+## Build Source Code
+- Build WRF-Hydro/NWM:
+ The Python project wrfhydropy will automatically build this.
+
+- Build WRF-Hydro/NWM JEDI
+```console
+$ cd wrf_hydro_nwm_jedi
+$ mkdir build
+$ cd build
+$ ecbuild ../bundle
+$ make -j 4
+```
+
+- Build JEDI Workflow
+```console
+$ cd wrf_hydro_nwm_jedi
+$ mkdir build
+$ ecbuild ..
+$ make -j 4
+```
+
+## Setup Yaml Files
+More to be added to this section.
+
+## Run Workflow
+```console
+$ python3 [path_to]/jedi_workflow/build/bin/jedi_workflowpy.py jedi_workflow.yaml
+```
+
+
+<!-- # Running -->
+<!-- ## Prerequisites -->
+<!--  - Python 3 and [wrf_hydro_py](https://github.com/NCAR/wrf_hydro_py) -->
+<!--  - [WRF-Hydro/NWM JEDI](https://github.com/JCSDA-internal/wrf_hydro_nwm_jedi) -->
+<!--  - [WRF-Hydro](https://github.com/NCAR/wrf_hydro_nwm_public) -->
+<!--  - Prepare Experiment Configuration Files -->
+<!--    - jedi_workflow.yaml -->
+<!--    - jedi.yaml -->
+<!--    - WRF-Hydro namelists, to be placed in the WRF-Hydro domain directory -->
+<!-- 	 - hrldas_namelists.json -->
+<!--      - hydro_namelists.json -->
+
+<!-- ### Prepping YAMLs -->
+<!--  - The starting time in `jedi.yaml` is propagated to JEDI and WRF-Hydro YAMLs -->
+<!-- during the initilization phase and while the model runs. -->
+<!--  - More to be added -->
 
 
 
@@ -52,12 +130,14 @@ graph TD
 
 
 # Miscellaneous Information
+## WRF-Hydro Spack Modules Build Instructions
+
+
 ## Note
 The member directories that are created by wrfhydropy have restart files that
 aren't used and may not correspond with the actuals files being used.
 The yamls point to the real files being used and those reside in the top
 directory, named after the project name.
-
 
 ## YAMLs
 JEDI Workflow YAML: if the `start_wrf-h_time` and `start_jedi_time` time are
@@ -78,39 +158,3 @@ Code is based on the [project AddJediIncr](https://github.com/ClaraDraper-NOAA/A
 
 Increment JEDI adds analysis to WRF-Hydro restart files.
 Used in conjunction with [WRF-Hydro/NWM JEDI Implementation](https://github.com/JCSDA-internal/wrf_hydro_nwm_jedi).
-
-## Prerequisites
-
-Load needed Fortran compiler, MPI and NETCDF modules.
-For testing `nccmp` will be useful.
-
-## Test
-If you chose to build with CMake you will now be able to run CTest with added
-  report functionality.
-CTest will run `jedi_increment` with two data sets that have modified `SNOWH`
-  or `SNEQV` variables.
-The command `$ make report` will compare the two modified RESTART files.
-
-```
-$ ctest
-Test project /glade/u/home/soren/src/jedi/add_jedi_increment/build
-    Start 1: hello_world
-1/3 Test #1: hello_world ......................   Passed    0.03 sec
-    Start 2: increment_SNOWH_test
-2/3 Test #2: increment_SNOWH_test .............   Passed    0.73 sec
-    Start 3: increment_SNEQV_test
-3/3 Test #3: increment_SNEQV_test .............   Passed    0.72 sec
-
-100% tests passed, 0 tests failed out of 3
-
-Total Test time (real) =   1.49 sec
-
-$ make report
-nccmp -dfqsS tests/RESTART.2017010100_DOMAIN1.test1 tests/RESTART.2017010100_DOMAIN1.test2
-Variable Group Count     Sum  AbsSum     Min        Max       Range    Mean      StdDev
-ZSNSO    /      3600    -360     360    -0.1 -0.0999999 2.38419e-07    -0.1 6.21742e-08
-SNICE    /       720 17661.5 17661.5 22.0679    28.0961     6.02827 24.5299     1.33927
-SNEQVO   /       720 17661.5 17661.5 22.0679    28.0961     6.02827 24.5299     1.33927
-SNEQV    /       720 17661.5 17661.5 22.0679    28.0961     6.02827 24.5299     1.33927
-SNOWH    /       720      72      72     0.1        0.1 5.96046e-08     0.1 1.50763e-08
-```
