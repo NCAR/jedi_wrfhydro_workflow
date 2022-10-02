@@ -14,7 +14,7 @@ The user can choose to call `jedi_workflowpy.py` from the `build/bin`
   directory or from the `src/jedi_workflowpy` directory.
 
 
-# Cheyenne Fullstack Build and Run
+# Cheyenne Build and Run Instructions
 ## Setup Environment
  - Load Spack modules
 ```console
@@ -86,7 +86,7 @@ More to be added to this section.
 
 ## Run Workflow
 ```console
-$ python3 [path_to]/jedi_workflow/build/bin/jedi_workflowpy.py jedi_workflow.yaml
+$ python3 [path_to]/jedi_workflowpy.py jedi_workflow.yaml
 ```
 
 
