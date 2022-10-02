@@ -51,6 +51,9 @@ $ python3 -m venv ~/[local_path]/env
 $ activate ~/[local_path]/env
 $ python3 -m pip install wrfhydropy
 ```
+Note: it would be good to add the line `activate ~/[local_path]/env` to the
+  end of the `gnu_spack_env.sh` file, so the python package gets loaded.
+
 
 ## Obtain Source Code
  - Clone repositories
