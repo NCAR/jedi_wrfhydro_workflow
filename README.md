@@ -1,5 +1,5 @@
 # JEDI Workflow
-A framework providing a workflow between WRF-Hydro/NWM JEDI and WRF-Hydro.
+A framework providing a workflow between [WRF-Hydro/NWM JEDI](https://github.com/JCSDA-internal/wrf_hydro_nwm_jedi) and [WRF-Hydro](https://github.com/NCAR/wrf_hydro_nwm_public)
 
 # Build Steps
 ## JEDI Workflow Build
@@ -45,7 +45,7 @@ module load bufr/11.7.1
 export NETCDF_INC=${netcdf_fortran_ROOT}/include
 export NETCDF_LIB=${netcdf_fortran_ROOT}/lib
 ```
- - Create Python environment to get wrfhydropy package
+ - Create Python environment to get [wrfhydropy](https://github.com/NCAR/wrf_hydro_py) package
 ```console
 $ python3 -m venv ~/[local_path]/env
 $ activate ~/[local_path]/env
@@ -56,7 +56,7 @@ Note: it would be good to add the line `activate ~/[local_path]/env` to the
 
 
 ## Obtain Source Code
- - Clone repositories
+ - Clone repositories [JCSDA-internal/wrf_hydro_nwm_jedi](https://github.com/JCSDA-internal/wrf_hydro_nwm_jedi) and [NCAR/wrf_hydro_nwm_public](https://github.com/NCAR/wrf_hydro_nwm_public)
 ```console
 $ git clone git@github.com:JCSDA-internal/wrf_hydro_nwm_jedi.git
 $ git clone git@github.com:NCAR/wrf_hydro_nwm_public.git
