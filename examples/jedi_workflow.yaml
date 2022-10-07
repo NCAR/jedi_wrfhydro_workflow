@@ -27,7 +27,8 @@ experiment:
       increment: True
 
   increment:
-    exe: /glade/u/home/soren/src/jedi/add_jedi_increment/bin/jedi_increment
+    exe: /path/to/jedi_workflow/bin/jedi_increment
+    var: snowh
 
   wrf_hydro:
     src_dir: /path/to/wrf_hydro
