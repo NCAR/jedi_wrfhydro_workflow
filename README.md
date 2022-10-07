@@ -9,7 +9,7 @@ $ cd build
 $ ecbuild ../
 $ make -j 4
 ```
-The `jedi_snow_increment` executable will now be in the `build/bin` directory.
+The `jedi_increment` executable will now be in the `build/bin` directory.
 The user can choose to call `jedi_workflowpy.py` from the `build/bin`
   directory or from the `src/jedi_workflowpy` directory.
 

@@ -2,7 +2,7 @@ program jedi_snow_incr
   use netcdf
   use mpi_f08
   use jedi_disag_module, only : jedi_type, updateAllLayers
-  use iso_fortran_env, only : real64
+  use iso_fortran_env, only : real64, error_unit
   implicit none
 
   type(jedi_type) :: jedi_state
@@ -47,24 +47,18 @@ program jedi_snow_incr
 
   call read_wrf_hydro_restart(restart_file, we_res, sn_res, jedi_state )
 
-  snowh_increment = .true.
+  call increment_snowh_or_sneqv(snowh_increment)
+
   call read_wrf_hydro_increment(increment_file, we_res, sn_res, increment, &
        snowh_increment)
 
-  ! if SNOWH is equal then it wasn't the increment variable, read in SNEQV
-  call check_increment_equality(jedi_state%snow_depth, increment, snowh_equal)
-
   ! units fix - need depth in mm
   jedi_state%snow_depth = jedi_state%snow_depth * 1000
-  ! Determine increment from analysis
-  increment = (increment * 1000) - jedi_state%snow_depth
 
-  if (snowh_equal .eqv. .true.) then
-     print *, "SNOWH is equal, reading in SNEQV as increment variable"
-     snowh_increment = .false.
-     call read_wrf_hydro_increment(increment_file, we_res, sn_res, increment, &
-          snowh_increment)
-     ! Determine increment from analysis
+  ! Determine increment from analysis
+  if (snowh_increment) then
+     increment = (increment * 1000) - jedi_state%snow_depth
+  else ! SWE increment
      increment = increment - jedi_state%swe
   end if
 
@@ -129,7 +123,7 @@ contains
     inquire(file=trim(file), exist=file_exists)
 
     if (.not. file_exists) then
-       print *, trim(file), 'does not exist, exiting'
+       print *, trim(file), ' does not exist, exiting'
        call MPI_Abort(MPI_COMM_WORLD, 10, ierr)
     endif
 
@@ -529,22 +523,25 @@ contains
     call netcdf_err(ierr, 'writing '//trim(var_name) )
   end subroutine write_nc_var3D
 
-  ! check equality of jedi state variable and increment
-  subroutine check_increment_equality(jedi_state_var, increment, is_equal)
-    real(real64), intent(in), dimension(:,:) :: jedi_state_var, increment
-    logical, intent(out) :: is_equal
-    integer :: i, j, increment_shape(2)
+  subroutine increment_snowh_or_sneqv(snowh_increment_flag)
+    logical, intent(out) :: snowh_increment_flag
+    character(len=16) :: increment_arg
+    call get_command_argument(3, increment_arg)
+    print *, "Increment arg passed is ", trim(increment_arg)
+    if ((trim(increment_arg) .eq. "snowh") .or. &
+         (trim(increment_arg) .eq. "SNOWH")) then
+       snowh_increment_flag = .true.
+    else if ((trim(increment_arg) .eq. "sneqv") .or. &
+         (trim(increment_arg) .eq. "SNEQV") .or. &
+         (trim(increment_arg) .eq. "SWE") .or. &
+         (trim(increment_arg) .eq. "swe")) then
+       snowh_increment_flag = .false.
+    else
+       write(error_unit, *) "ERROR: passed increment '" // &
+            trim(increment_arg) // "' is not SNOWH or SNEQV"
+       stop "ERROR: non-valid increment option passed"
 
-    increment_shape = shape(increment)
-    is_equal = .true.
-    do j=1,increment_shape(2)
-       do i=1,increment_shape(1)
-          if (increment(i,j) .ne. jedi_state_var(i,j)) then
-             is_equal = .false.
-             return
-          end if
-       end do
-    end do
-  end subroutine check_increment_equality
+    end if
+  end subroutine increment_snowh_or_sneqv
 
 end program jedi_snow_incr

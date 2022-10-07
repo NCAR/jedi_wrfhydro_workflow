@@ -116,8 +116,8 @@ class Workflow:
             cd(self.workflow_work_dir)
             cmd = [self.increment_exe,
                    self.lsm_file.filename,
-                   self.lsm_file.incrementfilename]
-                   # self.jedi_output_file]
+                   self.lsm_file.incrementfilename,
+                   self.increment_var]
             self.run(cmd)
         else:
             pprint('Not running jedi increment on restarts', 2)
@@ -321,7 +321,7 @@ class Workflow:
         self.read_yaml_init()
         self.read_yaml_time()
         self.read_jedi_yaml()
-        self.read_increment_exe()
+        self.read_increment_yaml()
         self.collect_yamls_and_jsons()
         self.read_yaml_wrf_hydro()
 
@@ -383,9 +383,11 @@ class Workflow:
         self.wrf_h_config = wrf_h_yaml['config']
 
 
-    def read_increment_exe(self):
+    def read_increment_yaml(self):
         self.increment_exe = \
             self.workflow_yaml.yaml['experiment']['increment']['exe']
+        self.increment_var = \
+            self.workflow_yaml.yaml['experiment']['increment']['var']
 
 
     def read_jedi_yaml(self):
