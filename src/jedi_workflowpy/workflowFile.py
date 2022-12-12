@@ -123,13 +123,13 @@ class Obs():
         for key,val in obs['obs space'].items():
             if key == 'obsdatain':
                 self.f_in = NC_Filename(obs_dir,
-                                        val['engine']['obsfile'],
+                                        val['obsfile'],
                                         time,
                                         obs['obs space']['name'],
                                         dt_format)
             if key == 'obsdataout':
                 self.f_out = NC_Filename('.',
-                                         val['engine']['obsfile'],
+                                         val['obsfile'],
                                          time,
                                          obs['obs space']['name'],
                                          dt_format)
