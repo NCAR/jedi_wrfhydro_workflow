@@ -6,19 +6,19 @@
 	url = git@github.com:NCAR/wrf_hydro_nwm_public.git
 [submodule "bundle/oops"]
 	path = bundle/oops
-	url = git@github.com:JCSDA-internal/oops.git
+	url = git@github.com:JCSDA/oops.git
 [submodule "bundle/saber"]
 	path = bundle/saber
-	url = git@github.com:JCSDA-internal/saber.git
+	url = git@github.com:JCSDA/saber.git
 [submodule "bundle/ioda"]
 	path = bundle/ioda
-	url = git@github.com:JCSDA-internal/ioda.git
+	url = git@github.com:JCSDA/ioda.git
 [submodule "bundle/ufo"]
 	path = bundle/ufo
-	url = git@github.com:JCSDA-internal/ufo.git
+	url = git@github.com:JCSDA/ufo.git
 [submodule "bundle/ufo-data"]
 	path = bundle/ufo-data
 	url = git@github.com:JCSDA-internal/ufo-data.git
 [submodule "bundle/jedicmake"]
 	path = bundle/jedicmake
-	url = git@github.com:JCSDA-internal/jedi-cmake.git
+	url = git@github.com:JCSDA/jedi-cmake.git
