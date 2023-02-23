@@ -1,48 +1,50 @@
 
 experiment:
+  name: 'foo'
+  num_p: 1
+  compiler: gnu
+  workflow_work_dir: foo
+
+  init:
+    restarts_dir: /path/to/initial/restart
+    obs_dir: /path/to/obs
+
   jedi:
-    yaml: /glade/work/soren/src/jedi/run/run_090321/3dvar_owp.yaml
-    exe: wrf_hydro_nwm_jedi_var.x
-    increment:
+    method: LETKF-OI
+    LETKF-OI:
+      exe: /path/to/wrf_hydro_nwm_jedi_letkf.x
+      yaml: /path_to/letkf_oi.yaml
+      increment: True
+      vars:
+        SNOWH: 0.02121
+        SNEQV: 21.21*0.25
+    hofx:
+      exe: /path/to/wrf_hydro_nwm_jedi_hofx3d.x
+      yaml: /path_to/hofx3d_workflow.yaml
+      increment: False
+    3dvar:
+      exe: /path/to/wrf_hydro_nwm_jedi_var.x
+      yaml: /path/to/3dvar_owp.yaml
+      increment: True
 
-    build_dir: /glade/work/soren/src/jedi/090321_build
-    working_dir: /glade/work/soren/src/jedi/run/run_090321
-    output_dir:  /glade/work/soren/src/jedi/foo_output
+  increment:
+    exe: /path/to/jedi_workflow/build/bin/jedi_increment
+    var: snowh
+
   wrf_hydro:
-    working_dif: /glade/work/soren/src/wrf/croton_NY_crocus
+    src_dir: /path/to/wrf_hydro_src
+    domain_dir: /path/to/wrf_hydro_domain
+    hydro_json: /path/to/hydro_namelists.json
+    hrldas_json: /path/to/hrldas_namelists.json
+    hydro_patches_json: /path/to/hydro_namelist_patches.json
+    hrldas_patches_json: /path/to/hrldas_namelists_patches.json
+    version: 'v5.2.0'
+    config: 'nwm_long_range'
 
-  command: create_next_ensemble.py
   time:
-    start_time: 2020-02-01_00:00:00
-    end_time: 2020-02-01_04:00:00
+    start_wrf-h_time: 2021-03-01_00:00:00
+    start_jedi_time:  2021-03-01_00:00:00
+    end_time:         2021-03-04_00:00:00
     assim_window:
-      hours: 1
-    advance_model_hours: 10
-
-
-
-# --- not read right now ---
-  dirs:
-    # jedi_build_dir: /glade/u/home/soren/src/jedi/workflow/tests/foo
-    # jedi_run_dir: /glade/u/home/soren/src/jedi/workflow/tests/foo
-    experiment_dir: /glade/work/soren/src/jedi/run/run_090321
-    experiment_output_dir: /glade/work/soren/src/jedi/run/run_090321/output/3dvar
-    # model_repo:
-    # domain_dir: /glade/work/soren/src/jedi/run/run_090321/
-    # output_dir: /glade/work/soren/src/jedi/run/run_090321/output/3dvar
-    output_dir: /glade/u/home/soren/src/jedi/test_run/
-    # FOLLOWING SHOULD BE DIFFERENT
-    initial_ensemble_dir: /glade/work/soren/src/jedi/run/run_090321/output/3dvar
-  file_names:
-    experiment_file_base: 'analysis_test_500_obs_owp_swe_csv'
-
-
-
-
-#
-# # which restarts in initial_ensemble_dir
-# use_hydro_rst = len(list(ini_dir.glob('member_000/HYDRO_RST*'))) > 0
-# use_lsm_rst = len(list(ini_dir.glob('member_000/RESTART*'))) > 0
-# use_param_rst = len(list(ini_dir.glob('member_000/parameter_restart*'))) > 0
-#
-#
+      hours: 24
+    advance_model_hours: 24

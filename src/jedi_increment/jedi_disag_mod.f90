@@ -25,11 +25,15 @@ contains
     logical, intent(in) :: snowh_increment
 
     integer :: i, j, zlayer, zinter, active_layers, vector_loc, pathway
+    integer :: snow_soil_num_dif
+    real(real64) :: total_snow_soil_dif
     real(real64) :: layer_density, swe_increment, liq_ratio
     real(real64) :: total_density, total_depth
     real(real64) :: soil_interfaces(7) = (/0.0,0.0,0.0,0.1,0.4,1.0,2.0/)
     real(real64) :: partition_ratio, layer_depths(3), anal_snow_depth
     real(real64), allocatable :: tmp_snowh_increment(:,:)
+    snow_soil_num_dif = 0
+    total_snow_soil_dif = 0.0
 
     ! If incrememt is not SNOWH, then it is SWE, convert SWE to SNOWH
     ! Original program setup for increment to be SNOWH
@@ -62,8 +66,6 @@ contains
          snow_ice_layer => jedi%snow_ice_layer     ,&
          snow_liq_layer => jedi%snow_liq_layer     ,&
          temperature_soil => jedi%temperature_soil )
-
-      print *, "-------", increment(2,2), "VS", swe(2,2)
 
       do j = 1, sn_res
       do i = 1, we_res
@@ -225,37 +227,45 @@ contains
          end if  ! anal_snow_depth <= 0.
 
          ! do some gross checks
-
-         if(abs(snow_soil_interface(i,7,j) - snow_soil_interface(i,3,j) + 2.d0) > 0.0000001) then
-            print*, "Depth of soil not 2m"
-            print*, pathway
-            print*, snow_soil_interface(i,7,j), snow_soil_interface(i,3,j)
-            !      stop
+         if(abs(snow_soil_interface(i,7,j) - snow_soil_interface(i,3,j) + real(2.0, real64)) > 0.0000001) then
+            snow_soil_num_dif = snow_soil_num_dif + 1
+            total_snow_soil_dif = total_snow_soil_dif + &
+                 abs(snow_soil_interface(i,7,j) - snow_soil_interface(i,3,j) + real(2.0, real64))
          end if
 
          if(active_snow_layers(i,j) < 0.0 .and. abs(snow_depth(i,j) + 1000.d0*snow_soil_interface(i,3,j)) > 0.0000001) then
+            print*, "---"
             print*, "snow_depth and snow_soil_interface inconsistent"
-            print*, pathway
-            print*, active_snow_layers(i,j), snow_depth(i,j), snow_soil_interface(i,3,j)
+            print*, "pathway =", pathway, "i =", i, "j =", j
+            print*, "active_snow_layers(i,j), snow_depth(i,j), snow_soil_interface(i,3,j) are", &
+                 active_snow_layers(i,j), snow_depth(i,j), snow_soil_interface(i,3,j)
             !      stop
          end if
 
          if( (abs(anal_snow_depth - snow_depth(i,j))   > 0.0000001) .and. (anal_snow_depth > 0.0001) ) then
+            print*, "---"
             print*, "snow increment and updated model snow inconsistent"
-            print*, pathway
-            print*, anal_snow_depth, snow_depth(i,j)
+            print*, "pathway =", pathway, "i =", i, "j =", j
+            print*, "anal_snow_depth, snow_depth(i,j) are", &
+                 anal_snow_depth, snow_depth(i,j)
             !      stop
          end if
 
          if(snow_depth(i,j) < 0.0 .or. snow_soil_interface(i,3,j) > 0.0 ) then
+            print*, "---"
             print*, "snow increment and updated model snow inconsistent"
-            print*, pathway
-            print*, snow_depth(i,j), snow_soil_interface(i,3,j)
+            print*, "pathway =", pathway, "i =", i, "j =", j
+            print*, "snow_depth(i,j), snow_soil_interface(i,3,j) are", &
+                 snow_depth(i,j), snow_soil_interface(i,3,j)
             !      stop
          end if
       end do
       end do
-
+      if (snow_soil_num_dif > 0) then
+         print*, "Depth of soil not 2m"
+         print*, "the average dif = ", total_snow_dif / snow_soil_num_dif, &
+              "at ", snow_soil_num_dif, " different locations"
+      end if
     end associate
 
   end subroutine updateAllLayers
