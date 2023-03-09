@@ -87,6 +87,9 @@ class Workflow:
 
 
     def run_filter(self):
+        if not self.current_timestep_jedi_obs_found:
+            print("jedi_obs_in does not exist, not running filter")
+            return
         pprint('Running JEDI filter', 2)
         cd(self.workflow_work_dir)
         cmd = [self.jedi_exe, self.jedi_yaml.fullpath]
@@ -111,7 +114,7 @@ class Workflow:
 
 
     def increment_restart(self):
-        if (self.jedi_increment):
+        if (self.jedi_increment and self.current_timestep_jedi_obs_found):
             pprint('Incrementing restarts', 2)
             cd(self.workflow_work_dir)
             cmd = [self.increment_exe,
@@ -162,6 +165,7 @@ class Workflow:
 
     def prep_cycle(self, advance):
         cd(self.workflow_work_dir)
+
         if advance:
             pprint("Advancing to " + str(self.time.future), 2)
             self.time.advance()
@@ -173,28 +177,42 @@ class Workflow:
                 self.workflow_work_dir)
             self.advance_obs()
             self.update_jedi_yaml_obs()
+
+            self.current_timestep_jedi_obs_found = True
             for obs in self.jedi_obs:
-                print('jedi_obs_in =', obs.f_in.fullpath)
-                print('jedi_obs_out =', obs.f_out.fullpath)
-                shutil.copy(obs.f_in.fullpath, obs.f_out.fullpath)
-
-        if self.jedi_method == 'LETKF-OI':
-            self.setup_LETKF_OI()
+                if not os.path.isfile(obs.f_in.fullpath):
+                    print("jedi_obs_in does not exist, not copying over")
+                    self.current_timestep_jedi_obs_found = False
+                else:
+                    print('jedi_obs_in =', obs.f_in.fullpath)
+                    print('jedi_obs_out =', obs.f_out.fullpath)
+                    shutil.copy(obs.f_in.fullpath, obs.f_out.fullpath)
         else:
-            self.jedi_yaml.put_key('filename_lsm', self.lsm_file.fullpath)
-            self.jedi_yaml.put_key('filename_hydro', self.hydro_file.fullpath)
+            # check for obs at current timestep
+            self.current_timestep_jedi_obs_found = True
+            for obs in self.jedi_obs:
+                if not os.path.isfile(obs.f_in.fullpath):
+                    print("jedi_obs_in does not exist, not copying over")
+                    self.current_timestep_jedi_obs_found = False
 
+
+        if self.current_timestep_jedi_obs_found == True:
+            if self.jedi_method == 'LETKF-OI':
+                self.setup_LETKF_OI()
+            else:
+                self.jedi_yaml.put_key('filename_lsm', self.lsm_file.fullpath)
+                self.jedi_yaml.put_key('filename_hydro', self.hydro_file.fullpath)
         self.jedi_yaml.put_key('window begin',
                                str(self.jedi_obs[0].f_in.date_stringify()))
         self.jedi_yaml.put_key('date',
                                str(self.jedi_obs[0].f_in.date_stringify()))
+        self.jedi_yaml.write()
 
+        # write WRF-Hydro JSONs
         self.wrf_h_hydro_json.put_key('restart_file', self.hydro_file.fullpath)
         self.wrf_h_hydro_json.put_key('restart_filename_requested',
                                       self.hydro_file.fullpath)
         self.wrf_h_hrldas_json.put_time(self.time.current)
-
-        self.jedi_yaml.write()
         self.wrf_h_hrldas_json.write()
         self.wrf_h_hydro_json.write()
         cd(self.workflow_work_dir)
