@@ -228,11 +228,11 @@ class Workflow:
             hrldas_namelist_config_file = self.wrf_h_hrldas_json.fullpath,
             model_config=self.wrf_h_config
         )
-        if (self.workflow_wrf_dir.exists()):
-            with open(self.workflow_wrf_dir / 'WrfHydroModel.pkl', 'rb') as f:
+        if (self.workflow_wrf_h_dir.exists()):
+            with open(self.workflow_wrf_h_dir / 'WrfHydroModel.pkl', 'rb') as f:
                 model = pickle.load(f)
         else:
-            model.compile(str(self.workflow_wrf_dir))
+            model.compile(str(self.workflow_wrf_h_dir))
 
         print('Using HRLDAS', self.wrf_h_hrldas_json.fullpath)
         print('Using HYDRO', self.wrf_h_hydro_json.fullpath)
@@ -336,6 +336,7 @@ class Workflow:
         pprint("Reading yamls", 2)
         self.workflow_yaml = wf.YAML_Filename(self.workflow_yaml_f)
         self.read_yaml_experiment()
+        self.set_exe_locations()
         self.read_yaml_init()
         self.read_yaml_time()
         self.read_jedi_yaml()
@@ -343,13 +344,28 @@ class Workflow:
         self.collect_yamls_and_jsons()
         self.read_yaml_wrf_hydro()
 
+    def set_exe_locations(self):
+        self.increment_exe = \
+            self.workflow_exe_dir + '/jedi_increment'
+        self.letkf_exe = \
+            self.workflow_exe_dir + '/wrf_hydro_nwm_jedi_letkf.x'
+        self.hofx_exe = \
+            self.workflow_exe_dir + '/wrf_hydro_nwm_jedi_hofx.x'
+        self.hofx3d_exe = \
+            self.workflow_exe_dir + '/wrf_hydro_nwm_jedi_hofx3d.x'
+        self.var_exe = \
+            self.workflow_exe_dir + '/wrf_hydro_nwm_jedi_var.x'
+
     def read_yaml_experiment(self):
         experiment = self.workflow_yaml.yaml['experiment']
         self.name = experiment['name']
         self.num_p = experiment['num_p']
         self.compiler = self.parse_compiler(experiment['compiler'])
         self.workflow_work_dir = experiment['workflow_work_dir']
-        self.workflow_wrf_dir = Path(self.workflow_work_dir + '/wrf_hydro_exe/')
+        self.workflow_dir = experiment['workflow_dir']
+        self.workflow_build_dir = self.workflow_dir + '/' + experiment['workflow_build_dir']
+        self.workflow_exe_dir = self.workflow_build_dir + "/bin"
+        self.workflow_wrf_h_dir = Path(self.workflow_work_dir + '/wrf_hydro_exe/')
         check_dir(self.workflow_work_dir)
 
     def parse_compiler(self, compiler):
@@ -393,17 +409,15 @@ class Workflow:
 
     def read_yaml_wrf_hydro(self):
         wrf_h_yaml = self.workflow_yaml.yaml['experiment']['wrf_hydro']
-        self.wrf_h_src_dir = check_wrf_h_build_path(
-            wrf_h_yaml['src_dir'])
-        self.wrf_h_exe = str(self.workflow_wrf_dir) + '/wrf_hydro.exe'
+        self.wrf_h_src_dir = self.workflow_dir + '/bundle/wrf_hydro_nwm_public/src'
+
+        self.wrf_h_exe = str(self.workflow_wrf_h_dir) + '/wrf_hydro.exe'
         self.wrf_h_domain_dir = check_path(wrf_h_yaml['domain_dir'])
         self.wrf_h_version = wrf_h_yaml['version']
         self.wrf_h_config = wrf_h_yaml['config']
 
 
     def read_increment_yaml(self):
-        self.increment_exe = \
-            self.workflow_yaml.yaml['experiment']['increment']['exe']
         self.increment_var = \
             self.workflow_yaml.yaml['experiment']['increment']['var']
 
@@ -419,27 +433,29 @@ class Workflow:
         self.hydro_file = wf.NC_Filename(self.restarts_dir, filename_hydro,
                                          self.time, self.name, '%Y-%m-%d_%H:%M')
         if (not os.path.exists(self.jedi_exe)):
-            exit("Couldn't find jedi executable")
+            exit("Couldn't find jedi executable at " + str(self.jedi_exe))
 
     def read_jedi_method(self, jedi):
         self.jedi_method = jedi['method']
-        mode_list = ['LETKF-OI', 'hofx', '3dvar']
+        mode_list = ['LETKF-OI', 'hofx', 'hofx3d', '3dvar']
         if self.jedi_method not in mode_list:
             print("Error: jedi method", jedi['method'],
                   'not in', mode_list)
             sys.exit()
 
         jedi_method_yaml = jedi[self.jedi_method]
-        self.jedi_exe = jedi_method_yaml['exe']
         self.jedi_yaml = wf.YAML_Filename(jedi_method_yaml['yaml'])
         self.jedi_increment = jedi_method_yaml['increment']
 
         if self.jedi_method == 'LETKF-OI':
             self.LETKF_OI = LETKF_OI(jedi_method_yaml['vars'])
+            self.jedi_exe = self.letkf_exe
         elif self.jedi_method == 'hofx':
-            pass
+            self.jedi_exe = self.hofx_exe
+        elif self.jedi_method == 'hofx3d':
+            self.jedi_exe = self.hofx3d_exe
         elif self.jedi_method == '3dvar':
-            pass
+            self.jedi_exe = self.var_exe
 
 
     def read_yaml_init(self):
@@ -533,33 +549,6 @@ def check_path(path):
     if (path[-1] != '/'):
         path += '/'
     return path
-
-def check_wrf_h_run_path(path: str) -> str:
-    path = check_path(path)
-    if path.endswith('trunk/NDHMS/Run/'):
-        pass
-    elif path.endswith('trunk/NDHMS/'):
-        path += 'Run/'
-    elif path.endswith('trunk/'):
-        path += 'NDHMS/Run/'
-    else:
-        path += 'trunk/NDHMS/Run/'
-    if not os.path.isdir(path):
-        exit("WRF-Hydro path: " + path + " not found")
-    return path
-
-def check_wrf_h_build_path(path: str) -> str:
-    path = check_path(path)
-    if path.endswith('trunk/NDHMS/'):
-        pass
-    elif path.endswith('trunk/'):
-        path += 'NDHMS/'
-    else:
-        path += 'trunk/NDHMS/'
-    if not os.path.isdir(path):
-        exit("WRF-Hydro path: " + path + " not found")
-    return path
-
 
 class node:
     def __init__(self):

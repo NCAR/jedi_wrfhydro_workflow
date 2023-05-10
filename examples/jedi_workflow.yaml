@@ -2,7 +2,9 @@ experiment:
   name: 'foo'
   num_p: 36
   compiler: gnu
-  workflow_work_dir: /path/to/workflow/work/dir
+  workflow_work_dir: /path/to/workflow_work/dir
+  workflow_dir: /path/to/workflow_src/dir
+  workflow_build_dir: build
 
   init:
     restarts_dir: /path/to/restarts
@@ -11,27 +13,22 @@ experiment:
   jedi:
     method: LETKF-OI
     LETKF-OI:
-      exe: /path/to/wrf_hydro_nwm_jedi_letkf.x
       yaml: /path/to/letkf_oi_workflow.yaml
       increment: True
       vars:
         SNOWH: 0.02121
         SNEQV: 21.21*0.25
     hofx:
-      exe: /path/to/wrf_hydro_nwm_jedi_hofx3d.x
       yaml: /path/to/hofx3d_taylor_park.yaml
       increment: False
     3dvar:
-      exe: /path/to/wrf_hydro_nwm_jedi_var.x
       yaml: /path/to/3dvar_owp.yaml
       increment: True
 
   increment:
-    exe: /path/to/jedi_workflow/bin/jedi_increment
     var: snowh
 
   wrf_hydro:
-    src_dir: /path/to/wrf_hydro
     domain_dir: /path/to/wrf_hydro_domain
     hydro_json: /path/to/hydro_namelists.json
     hrldas_json: /path/to/hrldas_namelists.json
