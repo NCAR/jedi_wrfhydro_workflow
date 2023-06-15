@@ -34,3 +34,6 @@ add_test(NAME bad_increment_name_passed
   ${CMAKE_CURRENT_BINARY_DIR}/RESTART.2017010100_DOMAIN1.test2
   ${CMAKE_CURRENT_BINARY_DIR}/RESTART.2017010100_DOMAIN1_SNEQV_plus100
   temp)
+
+set_tests_properties(bad_increment_name_passed
+  PROPERTIES WILL_FAIL TRUE)
