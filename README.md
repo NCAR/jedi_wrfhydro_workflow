@@ -13,7 +13,7 @@ The workflow uses Github Submodules to obtain all the required repositories.
 All executables will now be in the `build/bin` directory.
 The user can choose to call `jedi_workflowpy.py` from the `build/bin`
   directory or from the `src/jedi_workflowpy` directory.
-
+Note: if the user is not using a [virtual environment](https://docs.python.org/3/library/venv.html) or [conda environment](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) then ecbuild will install the required `wrfhydropy` Python library and it's requirements under the user's home directory.
 
 # Cheyenne Build and Run Instructions
 ## Setup Environment
@@ -27,6 +27,7 @@ module use $JEDI_OPT/modulefiles/core
 module load jedi/gnu-openmpi
 module load atlas/ecmwf-0.29.0
 ```
+The user can also add the commands to load their Python virtual environment or Conda environment into the above `gnu_env.sh` file.
 <!-- Old Instructions for Spack -->
 <!--  - Load Spack modules -->
 <!-- module purge -->

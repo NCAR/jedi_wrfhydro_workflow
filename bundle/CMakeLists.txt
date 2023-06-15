@@ -15,13 +15,21 @@ ecbuild_requires_macro_version( 2.5 )
 
 ecbuild_declare_project()
 ecbuild_enable_fortran( REQUIRED )
-ecbuild_find_python( REQUIRED )
+ecbuild_find_python( VERSION 3.6 REQUIRED NO_LIBS )
 ecbuild_find_mpi(
     COMPONENTS C Fortran
     REQUIRED )
 find_package( NetCDF REQUIRED COMPONENTS Fortran )
 
 enable_testing()
+
+# --- setup Python requirements ---
+if(DEFINED ENV{VIRTUAL_ENV} OR DEFINED ENV{CONDA_PREFIX})
+  set(_pip_args)
+else()
+  set(_pip_args "--user")
+endif()
+execute_process(COMMAND ${Python_EXECUTABLE} -m pip install ${_pip_args} wrfhydropy)
 
 # --- add and update submodules ---
 find_package(Git QUIET)
