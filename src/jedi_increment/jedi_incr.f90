@@ -539,7 +539,7 @@ contains
     else
        write(error_unit, *) "ERROR: passed increment '" // &
             trim(increment_arg) // "' is not SNOWH or SNEQV"
-       stop "ERROR: non-valid increment option passed"
+       error stop "ERROR: non-valid increment option passed"
 
     end if
   end subroutine increment_snowh_or_sneqv
