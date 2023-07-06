@@ -1,8 +1,8 @@
 # JEDI Workflow
-A framework providing a workflow between [WRF-Hydro/NWM JEDI](https://github.com/JCSDA-internal/wrf_hydro_nwm_jedi) and [WRF-Hydro](https://github.com/NCAR/wrf_hydro_nwm_public)
+A framework providing a workflow between [WRF-Hydro/NWM JEDI](https://github.com/JCSDA-internal/wrf_hydro_nwm_jedi) and [WRF-Hydro](https://github.com/NCAR/wrf_hydro_nwm_public).
+
 
 # Build Steps
-## JEDI Workflow Build
 ```console
 $ mkdir build
 $ cd build
@@ -13,10 +13,22 @@ The workflow uses Github Submodules to obtain all the required repositories.
 All executables will now be in the `build/bin` directory.
 The user can choose to call `jedi_workflowpy.py` from the `build/bin`
   directory or from the `src/jedi_workflowpy` directory.
+See this section for [building on Cheyenne.](#Cheyenne-Specific-Build-Instructions).
+
+# Experiment Setup
+Before running expirements a number of directories, YAML files, and JSON files will need to be setup.
+For further instructions on this process see the [expirement setup document](docs/expirement_setup.md "Expirement Setup").
 
 
-# Cheyenne Build and Run Instructions
+# Run Workflow
+```console
+$ python3 [path_to]/jedi_workflowpy.py jedi_workflow.yaml
+```
+
+
+# Cheyenne Specific Build Instructions
 ## Setup Environment
+### Using Modules
 ```console
 $ source gnu_env.sh
 $ cat gnu_env.sh
@@ -27,6 +39,28 @@ module use $JEDI_OPT/modulefiles/core
 module load jedi/gnu-openmpi
 module load atlas/ecmwf-0.29.0
 ```
+
+### Using GNU Spack Stack 1.4.0
+Note: this is for building and running the `develop` branch.
+The `develop` branch is setup to build and run with Spack modules on up-to-date JEDI modules.
+
+See [Spack Stack readthedocs](https://spack-stack.readthedocs.io/en/1.4.0/PreConfiguredSites.html#ncar-wyoming-cheyenne)
+for more detail and information on how to load the Intel stack.
+```console
+module purge
+export LMOD_TMOD_FIND_FIRST=yes
+module use /glade/work/jedipara/cheyenne/spack-stack/modulefiles/misc
+module load miniconda/3.9.12
+module load ecflow/5.8.4
+module load mysql/8.0.31
+
+module use /glade/work/epicufsrt/contrib/spack-stack/spack-stack-1.4.0/envs/unified-env-v2/install/modulefiles/Core
+module load stack-gcc/10.1.0
+module load stack-openmpi/4.1.1
+module load stack-python/3.9.12
+module load jedi-base-env
+```
+
 <!-- Old Instructions for Spack -->
 <!--  - Load Spack modules -->
 <!-- module purge -->
@@ -69,23 +103,18 @@ module load atlas/ecmwf-0.29.0
 
 
 
-## Obtain and Build Source Code
- - Clone repositories [JCSDA-internal/wrf_hydro_nwm_jedi](https://github.com/JCSDA-internal/wrf_hydro_nwm_jedi) and [NCAR/wrf_hydro_nwm_public](https://github.com/NCAR/wrf_hydro_nwm_public)
-```console
-$ git clone git@github.com:JCSDA-internal/wrf_hydro_nwm_jedi.git
-$ mkdir wrf_hydro_nwm_jedi/build
-$ cd wrf_hydro_nwm_jedi/build
-$ ecbuild ../bundle
-$ make -j 4
-```
+<!-- ## Obtain and Build Source Code -->
+<!--  - Clone repositories [JCSDA-internal/wrf_hydro_nwm_jedi](https://github.com/JCSDA-internal/wrf_hydro_nwm_jedi) and [NCAR/wrf_hydro_nwm_public](https://github.com/NCAR/wrf_hydro_nwm_public) -->
+<!-- ```console -->
+<!-- $ git clone git@github.com:JCSDA-internal/wrf_hydro_nwm_jedi.git -->
+<!-- $ mkdir wrf_hydro_nwm_jedi/build -->
+<!-- $ cd wrf_hydro_nwm_jedi/build -->
+<!-- $ ecbuild ../bundle -->
+<!-- $ make -j 4 -->
+<!-- ``` -->
 
-## Setup Yaml Files
-More to be added to this section.
 
-## Run Workflow
-```console
-$ python3 [path_to]/jedi_workflowpy.py jedi_workflow.yaml
-```
+
 
 
 <!-- # Running -->
@@ -134,22 +163,21 @@ aren't used and may not correspond with the actuals files being used.
 The yamls point to the real files being used and those reside in the top
 directory, named after the project name.
 
-## YAMLs
-JEDI Workflow YAML: if the `start_wrf-h_time` and `start_jedi_time` time are
-equal, then WRF-Hydro is not run before starting the cycle, only a restart
-file is used.
+<!-- ## YAMLs -->
+<!-- JEDI Workflow YAML: if the `start_wrf-h_time` and `start_jedi_time` time are -->
+<!-- equal, then WRF-Hydro is not run before starting the cycle, only a restart -->
+<!-- file is used. -->
 
 ## Debugging
 If the program fails while running `wrf_hydro_py`, examine the `foo.stdout`
 and `foo.stderr` files in the member subdirectories.
 
-If the program fails or is stopped during the `wrf_hydro_py`, WRF-Hydro may
-need to be recompiled.
+<!-- If the program fails or is stopped during the `wrf_hydro_py`, WRF-Hydro may -->
+<!-- need to be recompiled. -->
 
-# Git Submodules
-## Add JEDI increment data to WRF-Hydro data
-### Description
-Code is based on the [project AddJediIncr](https://github.com/ClaraDraper-NOAA/AddJediIncr) by Clara Draper and Mike Barlage.
-
-Increment JEDI adds analysis to WRF-Hydro restart files.
-Used in conjunction with [WRF-Hydro/NWM JEDI Implementation](https://github.com/JCSDA-internal/wrf_hydro_nwm_jedi).
+<!-- # Git Submodules -->
+<!-- ## Add JEDI increment data to WRF-Hydro data -->
+<!-- ### Description -->
+<!-- Code is based on the [project AddJediIncr](https://github.com/ClaraDraper-NOAA/AddJediIncr) by Clara Draper and Mike Barlage. -->
+<!-- Increment JEDI adds analysis to WRF-Hydro restart files. -->
+<!-- Used in conjunction with [WRF-Hydro/NWM JEDI Implementation](https://github.com/JCSDA-internal/wrf_hydro_nwm_jedi). -->
