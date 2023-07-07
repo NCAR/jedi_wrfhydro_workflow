@@ -42,7 +42,7 @@ module load atlas/ecmwf-0.29.0
 
 ### Using GNU Spack Stack 1.4.0
 Note: this is for building and running the `develop` branch.
-The `develop` branch is setup to build and run with Spack modules on up-to-date JEDI modules.
+The `develop` branch ~~is~~ will be setup to build and run with Spack modules on up-to-date JEDI modules.
 
 See [Spack Stack readthedocs](https://spack-stack.readthedocs.io/en/1.4.0/PreConfiguredSites.html#ncar-wyoming-cheyenne)
 for more detail and information on how to load the Intel stack.
