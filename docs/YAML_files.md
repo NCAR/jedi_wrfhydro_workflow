@@ -112,8 +112,8 @@ The `geometry` key in the `letkf_oi.yaml` file should specify the path to the ge
 geometry:
   input_file: /path/to/geometry/file e.g. /site_09253000/Domain/geometry_nwm_long_range.nc
 ```
-
-This section specifies the observation localization method and parameters. It basically controls the degree which nearby observations have impact on DA at the forecast grid cell. 
+## Localication Parameters
+This section specifies the observation localization method and parameters. It basically controls the degree of which nearby observations have impact on the DA at a forecast grid cell. 
 ```  
   - localization method: Horizontal SOAR
       lengthscale: 250e3
@@ -122,7 +122,9 @@ This section specifies the observation localization method and parameters. It ba
     - localization method: Vertical Brasnett
       vertical lengthscale: 500
 ```
-
+Figure below shows how each parameter changes the DA impact on the target variable `SNOWH` in the restart files.
+![plot](./figs/letkf-oi-parameters.JPG)
+## Control Observation Data
 Also the parameters below help filtering out missing/bad observation values and masking observation points outside the region of study.
 ```
     obs filters:
