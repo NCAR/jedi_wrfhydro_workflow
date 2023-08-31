@@ -113,7 +113,7 @@ geometry:
   input_file: /path/to/geometry/file e.g. /site_09253000/Domain/geometry_nwm_long_range.nc
 ```
 ## Localication Parameters
-This section specifies the observation localization method and parameters. It basically controls the degree of which nearby observations have impact on the DA at a forecast grid cell. 
+This section specifies the observation localization method and parameters. It basically controls the degree of which nearby observations have influence on the DA at a forecast grid cell. 
 ```  
   - localization method: Horizontal SOAR
       lengthscale: 250e3
@@ -122,10 +122,18 @@ This section specifies the observation localization method and parameters. It ba
     - localization method: Vertical Brasnett
       vertical lengthscale: 500
 ```
-Figure below shows how each parameter changes the DA impact on the target variable `SNOWH` in the restart files.
+
+- `localization method` determines the observation localization method. Valid values include: `Horizontal SOAR` and `Vertical Brasnett`
+  - `Horizontal SOAR`	is the Second Order Auto-Regressive localization in the horizontal 2-D axes.
+    - `lengthscale` specifies the radius of DA influence. In another word, it is the maximum distance of observations from the forecast location. The unit is meters, and the suggested format is e-notation.
+    - `soar horizontal decay` is the decay scale of the SOAR localization method. Basically, it determines how fast the influence of DA decay as a function of distance between observation site and the forecast location. 
+    - `max nobs` can limit the maximum number of nearby observations being used to update a given forecast point.
+  - `Vertical Brasnett` is the vertical component of the localization algorithm for snow DA applications. See `Brasnett 1999` [https://doi.org/10.1175/1520-0450(1999)](https://doi.org/10.1175/1520-0450(1999)038%3C0726:AGAOSD%3E2.0.CO;2) for details.
+
+Figure below shows how each parameter changes the DA impact on the target variable `SNOWH` within the posterior restart files of WRF-Hydro model.
 ![plot](./figs/letkf-oi-parameters.JPG)
 ## Control Observation Data
-Also the parameters below help filtering out missing/bad observation values and masking observation points outside the region of study.
+Also the parameters below can be used in filtering missing/bad observation values and masking observation points outside the region of interest.
 ```
     obs filters:
     - filter: Bounds Check # negative / missing snow
