@@ -15,6 +15,21 @@ The user can choose to call `jedi_workflowpy.py` from the `build/bin`
   directory or from the `src/jedi_workflowpy` directory.
 See this section for [building on Cheyenne.](#Cheyenne-Specific-Build-Instructions).
 
+## Testcase
+First use ecbuild to setup and make build. Run the following commands from `build` directory.
+```console
+# make testcase
+
+or equivalent
+# make testcase_setup
+# make testcase_run
+
+to clean testcase files
+# make testcase_clean
+```
+These commands will download the testdata tarball, extract it then run the JEDI Workflow tool on a SWE example and a SNOWH example.
+
+
 # Experiment Setup
 Before running expirements a number of directories, YAML files, and JSON files will need to be setup.
 For further instructions on this process see the [expirement setup document](docs/expirement_setup.md "Expirement Setup").
@@ -24,7 +39,6 @@ For further instructions on this process see the [expirement setup document](doc
 ```console
 $ python3 [path_to]/jedi_workflowpy.py jedi_workflow.yaml
 ```
-
 
 # Cheyenne Specific Build Instructions
 ## Setup Environment

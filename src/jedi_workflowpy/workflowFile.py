@@ -42,6 +42,16 @@ class Filename:
         print('copied', old_fullpath, 'to', to_dir + to_file)
 
 
+def tree_traversal_expand_vars(node):
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if isinstance(value, str):
+                node[key] = os.path.expandvars(value)
+            tree_traversal_expand_vars(value)
+    elif isinstance(node, list):
+        for item in node:
+            tree_traversal_expand_vars(item)
+
 class YAML_Filename(Filename):
     def __init__(self, fullpath):
         self.filename = os.path.basename(fullpath)
@@ -51,6 +61,7 @@ class YAML_Filename(Filename):
     def read(self):
         with open(self.fullpath, 'r') as f:
             self.yaml = yaml.safe_load(f)
+        tree_traversal_expand_vars(self.yaml) #
 
     def write(self):
         if (self.yaml):
