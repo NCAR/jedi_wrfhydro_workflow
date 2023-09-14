@@ -1,5 +1,6 @@
 add_subdirectory(jedi_increment)
 add_subdirectory(jedi_workflowpy)
+add_subdirectory(cmake_scripts)
 # add_subdirectory(wrf_hydro_nwm_jedi)
 
 # ecbuild_bundle_initialize()

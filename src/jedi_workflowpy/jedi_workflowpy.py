@@ -23,7 +23,7 @@ dry=False
 #   - incrementing fails
 #   -  wrfhydropy fails
 # * read resource info using CLI
-# * make parse_arguments less brittle
+# * make parse_commandline_args less brittle
 # * hard coded for GNU compiler
 class Workflow:
     def __init__(self, args):
@@ -37,7 +37,7 @@ class Workflow:
     def init(self, args):
         pprint("Initializing Workflowpy", 1)
         self.start_time = py_time.time()
-        self.parse_arguments(args)
+        self.parse_commandline_args(args)
         self.get_resource_info() # todo: one node hard coded
         self.read_yamls()
         self.setup_experiment()
@@ -70,6 +70,8 @@ class Workflow:
         self.lsm_file.set_date(self.time.current)
         self.hydro_file.set_date(self.time.current)
         self.jedi_obs_init()
+        if not os.path.isdir(self.workflow_work_dir):
+            os.mkdir(self.workflow_work_dir)
 
         # -- collect starting files
         # if precyclerun setup, then the model has been run and files are
@@ -181,7 +183,8 @@ class Workflow:
             self.current_timestep_jedi_obs_found = True
             for obs in self.jedi_obs:
                 if not os.path.isfile(obs.f_in.fullpath):
-                    print("jedi_obs_in does not exist, not copying over")
+                    print("jedi_obs_in does not exist, not copying over from",
+                          obs.f_in.fullpath)
                     self.current_timestep_jedi_obs_found = False
                 else:
                     print('jedi_obs_in =', obs.f_in.fullpath)
@@ -192,7 +195,8 @@ class Workflow:
             self.current_timestep_jedi_obs_found = True
             for obs in self.jedi_obs:
                 if not os.path.isfile(obs.f_in.fullpath):
-                    print("jedi_obs_in does not exist, not copying over")
+                    print("jedi_obs_in does not exist, not copying over from",
+                          obs.f_in.fullpath)
                     self.current_timestep_jedi_obs_found = False
 
 
@@ -324,11 +328,11 @@ class Workflow:
         ds.close()
 
 
-    def parse_arguments(self, args):
+    def parse_commandline_args(self, args):
         if len(args) > 1:
             self.workflow_yaml_f = args[1]
         else:
-            print("ERROR: didn't pass jedi workflow yaml")
+            print("ERROR: pass jedi_workflow yaml in command line")
             sys.exit()
 
 
@@ -349,6 +353,9 @@ class Workflow:
         self.num_p = experiment['num_p']
         self.compiler = self.parse_compiler(experiment['compiler'])
         self.workflow_work_dir = experiment['workflow_work_dir']
+        # make sure workflow_work_dir is a full path
+        if (self.workflow_work_dir[0] != '/'):
+            self.workflow_work_dir = os.getcwd() + '/' + self.workflow_work_dir
         self.workflow_wrf_dir = Path(self.workflow_work_dir + '/wrf_hydro_exe/')
         check_dir(self.workflow_work_dir)
 
