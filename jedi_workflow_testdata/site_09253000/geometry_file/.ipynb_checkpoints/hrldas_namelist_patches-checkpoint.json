@@ -1,0 +1,93 @@
+{
+    "base": {            
+        "noahlsm_offline": {
+            "hrldas_setup_file": "./wrfinput_d0x.nc",
+            "khour": 24,
+            "indir": "./FORCING",
+            "forcing_timestep": 3600,
+            "spatial_filename": "./soil_properties.nc",
+            "restart_filename_requested": "/glade/work/mazrooei/jedi/run_NWM_CO_test/restart/RESTART.2021030100_DOMAIN1",
+            "start_year": 2021,
+            "start_month": 3,
+            "start_day": 1,
+            "start_hour": 0,
+            "start_min": 0
+        },
+        "wrf_hydro_offline": {
+            "forc_typ": 2
+        }
+    },
+
+    "nwm_ana": {
+        "noahlsm_offline": {},
+        "wrf_hydro_offline": {}
+    },
+
+    "nwm_short_range" : {
+        "noahlsm_offline": {},
+        "wrf_hydro_offline": {}
+    },
+
+    "nwm_medium_range" : {
+        "noahlsm_offline": {},
+        "wrf_hydro_offline": {}
+    },
+
+    "nwm_long_range" : {
+        "noahlsm_offline": {},
+        "wrf_hydro_offline": {}
+    },
+
+    "nwm_channel-only" : {
+        "noahlsm_offline": {
+            "indir": "./FORCING_channel-only"
+        },
+        "wrf_hydro_offline": {
+            "forc_typ": 10
+        }
+    },
+
+    "nwm_output_ana": {
+        "noahlsm_offline": {},
+        "wrf_hydro_offline": {}
+    },
+
+    "nwm_output_long_range" : {
+        "noahlsm_offline": {
+            "hrldas_setup_file": "./NWM/DOMAIN_LR/wrfinput_d01.nc",
+            "indir": "./FORCING",
+            "forcing_timestep": 3600,
+            "spatial_filename": "./NWM/DOMAIN_LR/soil_properties.nc",
+            "restart_filename_requested": "./NWM/RESTART_LR/RESTART.2011082600_DOMAIN1"
+        },
+        "wrf_hydro_offline": {}
+    },
+
+    "gridded" : {
+        "noahlsm_offline": {
+            "hrldas_setup_file": "./Gridded/DOMAIN/wrfinput_d01.nc",
+            "spatial_filename": "./Gridded/DOMAIN/soil_properties.nc",
+            "restart_filename_requested": "./Gridded/RESTART/RESTART.2011082600_DOMAIN1"
+        },
+        "wrf_hydro_offline": {}
+    },
+
+    "gridded_no_lakes": {
+        "noahlsm_offline": {
+            "hrldas_setup_file": "./Gridded_no_lakes/DOMAIN/wrfinput_d01.nc",
+            "spatial_filename": "./Gridded_no_lakes/DOMAIN/soil_properties.nc",
+            "restart_filename_requested": "./Gridded_no_lakes/RESTART/RESTART.2011082600_DOMAIN1"
+        },
+        "wrf_hydro_offline": {}
+    },
+
+    "reach": {
+        "noahlsm_offline": {
+            "hrldas_setup_file": "./Reach/DOMAIN/wrfinput_d01.nc",
+            "spatial_filename": "./Reach/DOMAIN/soil_properties.nc",
+            "restart_filename_requested": "./Reach/RESTART/RESTART.2011082600_DOMAIN1"
+        },
+        "wrf_hydro_offline": {}
+    }
+
+}

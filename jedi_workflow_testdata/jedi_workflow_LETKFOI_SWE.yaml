@@ -1,0 +1,52 @@
+experiment:
+  name: 'assim_swe_'
+  num_p: 1
+  compiler: gnu
+  workflow_work_dir: swe_testcase
+
+  init:
+    restarts_dir: ${PWD}/site_09253000/Restart
+    obs_dir:      ${PWD}/site_09253000/SNOTEL_obs
+
+  jedi:
+    method: LETKF-OI
+    LETKF-OI:
+      exe:       ${PWD}/../bin/wrf_hydro_nwm_jedi_letkf.x
+      yaml:      ${PWD}/letkf_oi_09253000_workflow_SWE.yaml
+      increment: True
+      vars:
+        SNOWH: 0.02121
+        SNEQV: 21.21*0.25
+    hOfX:
+      exe:  ${PWD}/../bin/wrf_hydro_nwm_jedi_hofx3d.x
+      yaml: ${PWD}/hofx3d_taylor_park.yaml
+      increment: False
+    3dvar:
+      exe:  ${PWD}/../bin/wrf_hydro_nwm_jedi_var.x
+      yaml: ${PWD}/3dvar_owp.yaml
+      increment: True
+
+  increment:
+    exe: ${PWD}/../bin/jedi_increment
+    var: SWE
+
+  wrf_hydro:
+    src_dir:             ${PWD}/../../bundle/wrf_hydro_nwm_public/
+    domain_dir:          ${PWD}/site_09253000/Domain/
+    hydro_json:          ${PWD}/site_09253000/json_files/hydro_namelists.json
+    hrldas_json:         ${PWD}/site_09253000/json_files/hrldas_namelists.json
+    hydro_patches_json:  ${PWD}/site_09253000/json_files/hydro_namelist_patches.json
+    hrldas_patches_json: ${PWD}/site_09253000/json_files/hrldas_namelist_patches.json
+    version:             'v5.2.0'
+    config:              'nwm_long_range'
+
+
+  # WRF-Hydro only is run in a precycle if start_wrf-h_time is  # less than start_jedi_time
+  time:
+    # start_wrf-h_time: 2019-02-27_01:00:00 # precycl would be ran
+    start_wrf-h_time: 2021-03-01_00:00:00
+    start_jedi_time:  2021-03-01_00:00:00
+    end_time:         2021-03-09_00:00:00
+    assim_window:
+      hours: 24
+    advance_model_hours: 24

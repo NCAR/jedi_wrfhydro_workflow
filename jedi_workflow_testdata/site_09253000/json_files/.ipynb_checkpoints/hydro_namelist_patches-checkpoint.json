@@ -1,0 +1,127 @@
+{
+    "base": {            
+        "hydro_nlist": {
+            "geo_static_flnm": "./geo_em.d0x.nc",
+            "geo_finegrid_flnm": "./Fulldom_hires.nc",
+            "hydrotbl_f": "./hydro2dtbl.nc",
+            "land_spatial_meta_flnm": "./GEOGRID_LDASOUT_Spatial_Metadata.nc",
+            "restart_file": "/glade/work/mazrooei/jedi/ctest_jedi_workflow/site_09253000/Restart/HYDRO_RST.2021-03-01_00:00_DOMAIN1",
+            "route_lake_f":"",
+	        "route_link_f": "./Route_Link.nc",
+            "gwbuckparm_file": "./GWBUCKPARM.nc",
+            "udmap_file": "./spatialweights.nc",
+            "dxrt": 250,
+            "aggfactrt": 4
+        },
+        "nudging_nlist": {}
+    },
+
+    "nwm_ana": {
+        "hydro_nlist": {},
+        "nudging_nlist": {
+            "nudgingparamfile": "",
+            "nudginglastobsfile": "",
+            "timeslicepath": ""
+        }
+    },
+
+    "nwm_long_range" : {
+        "hydro_nlist": {
+            "dxrt": 1000,
+            "aggfactrt": 1
+        },
+        "nudging_nlist": {
+            "nudgingparamfile": "",
+            "nudginglastobsfile": "",
+            "timeslicepath": ""
+        }
+    },
+    
+    "nwm_channel-only": {
+        "hydro_nlist": {},
+        "nudging_nlist": {
+            "nudgingparamfile": "./NWM/DOMAIN/nudgingParams.nc",
+            "nudginglastobsfile": "./NWM/RESTART/nudgingLastObs.2011-08-26_00:00:00.nc",
+            "timeslicepath": "./NWM/nudgingTimeSliceObs/"
+        }
+    },
+
+    "nwm_output_ana": {
+        "hydro_nlist": {},
+        "nudging_nlist": {
+            "nudgingparamfile": "./NWM/DOMAIN/nudgingParams.nc",
+            "nudginglastobsfile": "./NWM/RESTART/nudgingLastObs.2011-08-26_00:00:00.nc",
+            "timeslicepath": "./NWM/nudgingTimeSliceObs/"
+        }
+    },
+
+    "nwm_output_long_range" : {
+        "hydro_nlist": {
+            "geo_static_flnm": "./geo_em.d01.nc",
+            "geo_finegrid_flnm": "./Fulldom_hires.nc",
+            "hydrotbl_f": "./hydro2dtbl.nc",
+            "land_spatial_meta_flnm": "./GEOGRID_LDASOUT_Spatial_Metadata.nc",
+            "restart_file": "./HYDRO_RST.2011-08-26_00:00_DOMAIN1",
+            "route_link_f": "./Route_Link.nc",
+            "route_lake_f": "./LAKEPARM.nc",
+            "gwbuckparm_file": "./GWBUCKPARM.nc",
+            "udmap_file": "./spatialweights.nc",
+            "dxrt": 1000,
+            "aggfactrt": 1
+        },
+        "nudging_nlist": {
+                "nudgingparamfile": "./NWM/DOMAIN/nudgingParams.nc",
+                "nudginglastobsfile": "./NWM/RESTART/nudgingLastObs.2011-08-26_00:00:00.nc",
+                "timeslicepath": "./NWM/nudgingTimeSliceObs/"
+        }
+    },
+    
+    "gridded": {
+        "hydro_nlist": {
+            "geo_static_flnm": "./Gridded/DOMAIN/geo_em.d01.nc",
+            "geo_finegrid_flnm": "./Gridded/DOMAIN/Fulldom_hires.nc",
+            "hydrotbl_f": "./Gridded/DOMAIN/hydro2dtbl.nc",
+            "land_spatial_meta_flnm": "./Gridded/DOMAIN/GEOGRID_LDASOUT_Spatial_Metadata.nc",
+            "restart_file": "./Gridded/RESTART/HYDRO_RST.2011-08-26_00:00_DOMAIN1",
+            "route_link_f": "",
+            "route_lake_f": "./Gridded/DOMAIN/LAKEPARM.nc",
+            "gwbuckparm_file": "./Gridded/DOMAIN/GWBUCKPARM.nc",
+            "gwbasmskfil": "./Gridded/DOMAIN/GWBASINS.nc",
+            "udmap_file": "./Gridded/DOMAIN/spatialweights.nc"
+        },
+        "nudging_nlist": {}
+    },
+
+    "gridded_no_lakes": {
+        "hydro_nlist": {
+            "geo_static_flnm": "./Gridded_no_lakes/DOMAIN/geo_em.d01.nc",
+            "geo_finegrid_flnm": "./Gridded_no_lakes/DOMAIN/Fulldom_hires.nc",
+            "hydrotbl_f": "./Gridded_no_lakes/DOMAIN/hydro2dtbl.nc",
+            "land_spatial_meta_flnm": "./Gridded_no_lakes/DOMAIN/GEOGRID_LDASOUT_Spatial_Metadata.nc",
+            "restart_file": "./Gridded_no_lakes/RESTART/HYDRO_RST.2011-08-26_00:00_DOMAIN1",
+            "route_link_f": "",
+            "gwbuckparm_file": "./Gridded_no_lakes/DOMAIN/GWBUCKPARM.nc",
+            "gwbasmskfil": "./Gridded_no_lakes/DOMAIN/GWBASINS.nc",
+            "udmap_file": "./Gridded_no_lakes/DOMAIN/spatialweights.nc"
+        },
+        "nudging_nlist": {}
+    },
+
+    "reach" : {
+        "hydro_nlist": {
+            "geo_static_flnm": "./Reach/DOMAIN/geo_em.d01.nc",
+            "geo_finegrid_flnm": "./Reach//DOMAIN/Fulldom_hires.nc",
+            "hydrotbl_f": "./Reach/DOMAIN/hydro2dtbl.nc",
+            "land_spatial_meta_flnm": "./Reach/DOMAIN/GEOGRID_LDASOUT_Spatial_Metadata.nc",
+            "restart_file": "./Reach/RESTART/HYDRO_RST.2011-08-26_00:00_DOMAIN1",
+            "route_lake_f": "",
+            "route_link_f": "./Reach/DOMAIN/Route_Link.nc",
+            "gwbuckparm_file": "./Reach/DOMAIN/GWBUCKPARM.nc",
+            "gwbasmskfil": "./Reach/DOMAIN/GWBASINS.nc"
+        },
+        "nudging_nlist": {}
+    }
+}   
+
+
+

@@ -1,0 +1,7 @@
+#!/bin/bash
+OLDFORCPATH='/glade/work/mazrooei/jedi/ctest_jedi_workflow/site_09253000/in_forcing/'
+NEWFORCPATH='/glade/work/mazrooei/jedi/ctest_jedi_workflow/site_09253000/Forcing/'
+for i in `ls $OLDFORCPATH`; do
+echo ${i##*/}
+ncks -O -d x,1477,1507 -d y,2058,2091 ${OLDFORCPATH}/${i} ${NEWFORCPATH}/${i##*/}
+done
