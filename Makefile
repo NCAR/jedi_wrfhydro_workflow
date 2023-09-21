@@ -1,8 +1,11 @@
 jedi_workflow=../../src/jedi_workflowpy/jedi_workflowpy.py
-jedi_workflow_yaml=jedi_workflow_LETKFOI_SWE.yaml
+jedi_swe_yaml=jedi_workflow_LETKFOI_SWE.yaml
+jedi_snowh_yaml=jedi_workflow_LETKFOI_snowh.yaml
 
-all: run
+all: swe snowh
 
+swe:
+	python3 $(jedi_workflow) $(jedi_swe_yaml)
 
-run:
-	python3 $(jedi_workflow) $(jedi_workflow_yaml)
+snowh:
+	python3 $(jedi_workflow) $(jedi_snowhyaml)
