@@ -2,7 +2,7 @@ window begin: &date '2021-03-01T00:00:00Z'
 window length: PT24H
 
 geometry:
-  input_file: site_09253000/Domain/geometry_nwm_long_range.nc
+  input_file: ${PWD}/site_09253000/Domain/geometry_nwm_long_range.nc
 
 background:
   members:
