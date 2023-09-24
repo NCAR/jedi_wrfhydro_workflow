@@ -18,14 +18,14 @@ See this section for [building on Cheyenne.](#Cheyenne-Specific-Build-Instructio
 ## Testcase
 First use ecbuild to setup and make build. Run the following commands from `build` directory.
 ```console
-# make testcase
+$ make testcase
 
 or equivalent
-# make testcase_setup
-# make testcase_run
+$ make testcase_setup
+$ make testcase_run
 
 to clean testcase files
-# make testcase_clean
+$ make testcase_clean
 ```
 These commands will download the testdata tarball, extract it then run the JEDI Workflow tool on a SWE example and a SNOWH example.
 
