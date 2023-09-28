@@ -133,7 +133,7 @@ This section specifies the observation localization method and parameters. It ba
 Figure below shows how each parameter changes the DA impact on the target variable `SNOWH` within the posterior restart files of WRF-Hydro model.
 ![plot](./figs/letkf-oi-parameters.JPG)
 ## Control Observation Data
-Also the parameters below can be used in filtering missing/bad observation values and masking observation points outside the region of interest.
+Also the parameters below can be used in oder to filter out missing/bad observation values and mask observation points outside the region of interest.
 ```
     obs filters:
     - filter: Bounds Check # negative / missing snow
