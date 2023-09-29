@@ -34,8 +34,8 @@ observations:
         covariance model: 'diagonal'
     obs localizations:
     - localization method: Horizontal SOAR
-      lengthscale: 250e3
-      soar horizontal decay: 2.1e-02
+      lengthscale: 12e3
+      soar horizontal decay: 8.1e-04
       max nobs: 50
     - localization method: Vertical Brasnett
       vertical lengthscale: 500

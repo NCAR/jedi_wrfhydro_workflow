@@ -46,7 +46,7 @@ experiment:
     # start_wrf-h_time: 2019-02-27_01:00:00 # precycl would be ran
     start_wrf-h_time: 2021-03-01_00:00:00
     start_jedi_time:  2021-03-01_00:00:00
-    end_time:         2021-03-09_00:00:00
+    end_time:         2021-03-10_00:00:00
     assim_window:
       hours: 24
     advance_model_hours: 24
