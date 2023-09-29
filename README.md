@@ -27,7 +27,7 @@ $ make testcase_run
 to clean testcase files
 $ make testcase_clean
 ```
-These commands will download the testdata tarball, extract it then run the JEDI Workflow tool on a SWE example and a SNOWH example.
+These commands will download the testdata tarball, extract it then run the JEDI Workflow tool on a SWE example and a SNOWH example. To see examples of post-processing and analyses of the testcase results, check jupyter notebooks under docs/notebooks folder.
 
 
 # Experiment Setup
